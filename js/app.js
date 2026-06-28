@@ -47,7 +47,8 @@ const yearShort = (y) => (y < 0 ? `BC${Math.abs(y)}` : `${y}`);
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
-async function fetchJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} (${r.status})`); return r.json(); }
+// cache:"no-cache" = 매번 조건부 요청(변경 없으면 304, 작음) → push 후 새 데이터가 바로 반영됨
+async function fetchJSON(url) { const r = await fetch(url, { cache: "no-cache" }); if (!r.ok) throw new Error(`${url} (${r.status})`); return r.json(); }
 function showLoading(msg) { const el = $("#loading"); el.hidden = !msg; if (msg) el.textContent = msg; }
 
 // ─── 매니페스트
