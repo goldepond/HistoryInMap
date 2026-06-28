@@ -19,7 +19,7 @@ const state = {
   mode: "global", scene: null, year: 1490, globalYear: 1490,
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
-  baseLevel: null, playTimer: null, anim: null,
+  baseLevel: null, playTimer: null, journey: null,
 };
 
 const $ = (s) => document.querySelector(s);
@@ -39,7 +39,6 @@ map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natu
 const baseLayer = L.layerGroup().addTo(map);
 const borderLayer = L.layerGroup().addTo(map);
 const eventLayer = L.layerGroup().addTo(map);
-const animLayer = L.layerGroup().addTo(map);
 
 // ─── 유틸
 const yearText = (y) => (y < 0 ? `기원전 ${Math.abs(y)}년` : `서기 ${y}년`);
@@ -162,6 +161,7 @@ function renderEvents() {
   const active = activeEvents();
   const byRegion = new Map();
   for (const ev of active) { drawEvent(ev); if (!byRegion.has(ev.region)) byRegion.set(ev.region, []); byRegion.get(ev.region).push(ev); }
+  if (state.journey) { const je = journeyEvent(); if (je && !active.includes(je)) drawRouteJourney(je); } // 따라가기 중인 경로는 항상 표시
   renderPanel(byRegion, active.length);
 }
 function drawEvent(ev) {
@@ -170,6 +170,7 @@ function drawEvent(ev) {
     const m = L.circleMarker(ev.geom.latlng, { pane: "eventPane", radius: 7, color: "#0b1020", weight: 1.5, fillColor: color, fillOpacity: 0.95 });
     m.bindPopup(popupHtml(ev), { maxWidth: 340 }); m.eventId = ev.id; eventLayer.addLayer(m);
   } else if (ev.geom.type === "route") {
+    if (state.journey && state.journey.id === ev.id) { drawRouteJourney(ev); return; }
     const line = L.polyline(ev.geom.latlngs, { pane: "eventPane", color, weight: 3, opacity: 0.9, dashArray: "6,5" });
     line.bindPopup(popupHtml(ev), { maxWidth: 340 }); line.eventId = ev.id; eventLayer.addLayer(line);
     ev.geom.latlngs.forEach((ll, i) => {
@@ -187,7 +188,7 @@ function popupHtml(ev) {
   const period = ev.end != null ? `${yearText(ev.start)} ~ ${yearText(ev.end)}` : yearText(ev.start);
   let wp = "";
   if (ev.geom.type === "route" && ev.geom.waypoints) wp = '<div class="wp">경유: ' + ev.geom.waypoints.map((w, i) => `${i + 1}.${escapeHtml(w.name)}`).join(" → ") + "</div>";
-  const play = ev.geom.type === "route" ? `<button class="play-route" data-anim="${ev.id}">▶ 경로 재생</button>` : "";
+  const play = ev.geom.type === "route" ? `<button class="play-route" data-journey="${ev.id}">▶ 경로 따라가기</button>` : "";
   return `<div class="event-popup"><h3>${escapeHtml(ev.title)}</h3>` +
     `<div class="pop-meta">${escapeHtml(ev.region)}${ev.category ? " · " + escapeHtml(ev.category) : ""} · ${period} · ${GEO_LABEL[ev.geom.type]}</div>` +
     `<div class="md-body">${md(ev.body)}</div>${wp}${play}</div>`;
@@ -217,26 +218,59 @@ function focusEvent(id) {
   t.openPopup();
 }
 
-// ─── 경로 애니메이션
-function animateRoute(id) {
-  const ev = state.events.find((e) => e.id === id); if (!ev || ev.geom.type !== "route") return;
-  if (state.anim) cancelAnimationFrame(state.anim.raf); animLayer.clearLayers();
-  const pts = ev.geom.latlngs, color = REGION_COLORS[ev.region] || DEFAULT_REGION_COLOR;
-  const dot = L.circleMarker(pts[0], { pane: "eventPane", radius: 8, color: "#fff", weight: 2, fillColor: color, fillOpacity: 1 }).addTo(animLayer);
-  const trail = L.polyline([pts[0]], { pane: "eventPane", color: "#fff", weight: 3, opacity: 0.95 }).addTo(animLayer);
-  const seg = []; let total = 0;
-  for (let i = 1; i < pts.length; i++) { const d = map.distance(pts[i - 1], pts[i]); seg.push(d); total += d; }
-  const dur = Math.min(9000, Math.max(3500, pts.length * 1400)); let t0 = null;
-  function frame(ts) {
-    if (t0 == null) t0 = ts; const t = Math.min(1, (ts - t0) / dur);
-    let dist = t * total, i = 0; while (i < seg.length && dist > seg[i]) { dist -= seg[i]; i++; }
-    let pos; if (i >= seg.length) pos = pts[pts.length - 1]; else { const r = seg[i] ? dist / seg[i] : 0; pos = [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * r, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * r]; }
-    dot.setLatLng(pos); trail.setLatLngs([...pts.slice(0, i + 1), pos]);
-    if (t < 1) state.anim = { raf: requestAnimationFrame(frame) }; else setTimeout(() => animLayer.clearLayers(), 1200);
-  }
-  state.anim = { raf: requestAnimationFrame(frame) };
+// ─── 경로 따라가기 (단계별 · 비애니메이션)
+//   지나온 길=실선, 현재 이동 구간=흰색 강조, 앞으로 갈 길=흐린 점선, 현재 지점=큰 마커
+const journeyEvent = () => state.events.find((e) => e.id === state.journey?.id);
+const wpName = (ev, i) => ev.geom.waypoints?.[i]?.name || `지점 ${i + 1}`;
+const wpDate = (ev, i) => ev.geom.waypoints?.[i]?.date || "";
+
+function startJourney(id) {
+  const ev = state.events.find((e) => e.id === id);
+  if (!ev || ev.geom.type !== "route") return;
+  map.closePopup();
+  state.journey = { id, step: 0 };
+  renderEvents(); updateJourneyBar(); panToStep();
 }
-document.addEventListener("click", (e) => { const b = e.target.closest("[data-anim]"); if (b) animateRoute(b.getAttribute("data-anim")); });
+function journeyStep(delta) {
+  const ev = journeyEvent(); if (!ev) return;
+  const n = ev.geom.latlngs.length;
+  state.journey.step = Math.max(0, Math.min(n - 1, state.journey.step + delta));
+  renderEvents(); updateJourneyBar(); panToStep();
+}
+function endJourney() { state.journey = null; $("#journey-bar").hidden = true; renderEvents(); }
+function panToStep() {
+  const ev = journeyEvent(); if (!ev) return;
+  const ll = ev.geom.latlngs[state.journey.step];
+  if (ll) map.panInside(L.latLng(ll), { padding: [70, 70] });
+}
+function updateJourneyBar() {
+  const bar = $("#journey-bar"); const ev = journeyEvent();
+  if (!ev) { bar.hidden = true; return; }
+  const k = state.journey.step, n = ev.geom.latlngs.length, date = wpDate(ev, k);
+  const move = k === 0 ? `출발 · <strong>${escapeHtml(wpName(ev, 0))}</strong>`
+    : `${escapeHtml(wpName(ev, k - 1))} → <strong>${escapeHtml(wpName(ev, k))}</strong>`;
+  $("#journey-title").textContent = ev.title;
+  $("#journey-cap").innerHTML = `${k + 1}/${n} · ${move}${date ? ` <span class="jdate">(${escapeHtml(date)})</span>` : ""}`;
+  $("#journey-prev").disabled = k === 0;
+  $("#journey-next").disabled = k === n - 1;
+  bar.hidden = false;
+}
+function drawRouteJourney(ev) {
+  const color = REGION_COLORS[ev.region] || DEFAULT_REGION_COLOR;
+  const pts = ev.geom.latlngs, k = state.journey.step;
+  if (k < pts.length - 1) eventLayer.addLayer(L.polyline(pts.slice(k), { pane: "eventPane", color, weight: 2, opacity: 0.3, dashArray: "4,6", interactive: false }));
+  if (k > 0) eventLayer.addLayer(L.polyline(pts.slice(0, k + 1), { pane: "eventPane", color, weight: 4, opacity: 0.85, interactive: false }));
+  if (k >= 1) eventLayer.addLayer(L.polyline([pts[k - 1], pts[k]], { pane: "eventPane", color: "#fff", weight: 5, opacity: 0.95, interactive: false }));
+  pts.forEach((ll, i) => {
+    const current = i === k;
+    const m = L.circleMarker(ll, { pane: "eventPane", radius: current ? 9 : 5,
+      color: current ? "#fff" : "#0b1020", weight: current ? 3 : 1,
+      fillColor: i <= k ? color : "#1f2742", fillOpacity: i <= k ? 1 : 0.6 });
+    m.bindTooltip(`${i + 1}. ${escapeHtml(wpName(ev, i))}${wpDate(ev, i) ? " · " + escapeHtml(wpDate(ev, i)) : ""}`, { direction: "top", permanent: current, className: "border-label" });
+    eventLayer.addLayer(m);
+  });
+}
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-journey]"); if (b) startJourney(b.getAttribute("data-journey")); });
 
 // ─── 타임라인
 function setYear(year, { fromSlider = false } = {}) {
@@ -273,11 +307,13 @@ function buildSceneSelect() {
   for (const sc of state.scenes) { const o = document.createElement("option"); o.value = sc.id; o.textContent = sc.title; sel.appendChild(o); }
 }
 function enterScene(sc) {
+  endJourney();
   state.mode = "scene"; state.scene = sc; $("#scene-desc").textContent = sc.body || "";
   state.currentBorderFilename = null; buildTimeline();
   map.fitBounds(L.latLngBounds(sc.bounds), { padding: [20, 20] }); setYear(sc.start);
 }
 function exitScene() {
+  endJourney();
   state.mode = "global"; state.scene = null; $("#scene-desc").textContent = ""; $("#scene-select").value = "";
   buildTimeline(); map.setView([25, 15], 2); setYear(state.globalYear);
 }
@@ -290,8 +326,16 @@ function bindUI() {
   $("#info-toggle").addEventListener("click", () => ($("#info-modal").hidden = false));
   $("#info-close").addEventListener("click", () => ($("#info-modal").hidden = true));
   $("#info-modal").addEventListener("click", (e) => { if (e.target.id === "info-modal") $("#info-modal").hidden = true; });
+  $("#journey-prev").addEventListener("click", () => journeyStep(-1));
+  $("#journey-next").addEventListener("click", () => journeyStep(1));
+  $("#journey-close").addEventListener("click", endJourney);
   document.addEventListener("keydown", (e) => {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+    if (state.journey) { // 경로 따라가기 중엔 화살표가 단계를 이동
+      if (e.key === "ArrowRight") return journeyStep(1);
+      if (e.key === "ArrowLeft") return journeyStep(-1);
+      if (e.key === "Escape") return endJourney();
+    }
     if (e.key === "ArrowRight") setYear(Math.min(+slider.max, state.year + (+slider.step)));
     if (e.key === "ArrowLeft") setYear(Math.max(+slider.min, state.year - (+slider.step)));
     if (e.key === "Escape") $("#info-modal").hidden = true;

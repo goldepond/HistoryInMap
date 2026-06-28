@@ -25,6 +25,17 @@
       <div id="loading" class="loading-badge" hidden>로딩 중…</div>
       <div id="border-badge" class="border-badge" hidden></div>
 
+      <!-- 경로 따라가기 바 -->
+      <div id="journey-bar" class="journey-bar" hidden>
+        <button id="journey-prev" class="jbtn" aria-label="이전 단계">◀</button>
+        <div class="journey-text">
+          <div id="journey-title" class="journey-title"></div>
+          <div id="journey-cap" class="journey-cap"></div>
+        </div>
+        <button id="journey-next" class="jbtn" aria-label="다음 단계">▶</button>
+        <button id="journey-close" class="jbtn close" aria-label="닫기">✕</button>
+      </div>
+
       <div class="disclaimer">⚠ 일부 시대의 국경·경로는 학술적으로 불확실합니다. <strong>참고용이며 학술 인용 전 교차검증이 필요</strong>합니다.</div>
 
       <div id="legend" class="legend" hidden>
@@ -65,7 +76,7 @@
       <h2>이 사이트에 대하여</h2>
       <ul>
         <li><strong>타임라인</strong> — 전 세계 10년 단위. <em>장면</em>을 고르면 지역 포커스 + 연 단위.</li>
-        <li><strong>사건 형태</strong> — 지점·경로(▶ 재생)·영역. 마커/선을 클릭하면 상세(마크다운).</li>
+        <li><strong>사건 형태</strong> — 지점·경로·영역. 경로는 팝업의 <strong>▶ 경로 따라가기</strong>로 어디서 어디로 갔는지 한 구간씩 확인(◀▶ 또는 좌우 화살표 키).</li>
         <li><strong>콘텐츠 관리</strong> — 시대·장면·사건은 <code>content/*.md</code> 파일(위키·Terraform식). 고쳐서 git에 push하면 자동 반영됩니다.</li>
       </ul>
       <p class="muted">경계 historical-basemaps (GPL-3.0) · 지형 Natural Earth (PD) · 지도 Leaflet (BSD) · 마크다운 marked (MIT)</p>
