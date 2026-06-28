@@ -139,7 +139,7 @@ async function renderBorders(targetYear) {
     const gj = L.geoJSON(geo, { pane: "borderPane", renderer: borderRenderer, smoothFactor: 2, style: borderStyle, onEachFeature: (f, lyr) => {
       const p = f.properties || {};
       lyr.bindTooltip(p.NAME || "(미상)", { className: "border-label" });
-      lyr.bindPopup(`<div class="event-popup"><h3>${escapeHtml(p.NAME || "(미상)")}</h3><div class="pop-meta">종주국: ${escapeHtml(p.SUBJECTO || "—")} · 문화권: ${escapeHtml(p.PARTOF || "—")} · 정밀도 ${precisionOf(p)}</div></div>`);
+      lyr.bindPopup(`<div class="event-popup"><h3>${escapeHtml(p.NAME || "(미상)")}</h3><div class="pop-meta">종주국: ${escapeHtml(p.SUBJECTO || "—")} · 문화권: ${escapeHtml(p.PARTOF || "—")} · 경계 신뢰도 ${precisionOf(p)}</div></div>`);
     } });
     builtBorders.set(snap.filename, gj);
     showBorderLayer(gj, snap.filename);
