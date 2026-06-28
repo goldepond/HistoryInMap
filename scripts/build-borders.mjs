@@ -16,7 +16,27 @@ const OUT = path.join(ROOT, "data", "borders");
 const EPSILON = 0.03;   // 단순화 강도(도). 클수록 더 단순/가벼움. 0.01~0.05 권장
 const DECIMALS = 3;     // 좌표 소수 자리(3 ≈ 110m)
 
+// 아메리카 원주민(추정·정밀도1) 폴리곤 제거: 명나라는 한 덩이인데 북미만 수백 조각이라 과도.
+// 원본(borders-src)은 보존되므로 되돌리려면 이 값을 false 로.
+const DROP_AMERICAS_PREC1 = true;
+const AMERICAS_LNG = [-170, -34]; // 아메리카 경도 범위(중심점 기준)
+const AMERICAS_LAT = [-56, 73];
+
 const round = (n) => Math.round(n * 10 ** DECIMALS) / 10 ** DECIMALS;
+
+function bboxCenter(geom) {
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  (function rec(co) { if (typeof co[0] === "number") { if (co[0] < minX) minX = co[0]; if (co[0] > maxX) maxX = co[0]; if (co[1] < minY) minY = co[1]; if (co[1] > maxY) maxY = co[1]; } else co.forEach(rec); })(geom.coordinates);
+  return [(minX + maxX) / 2, (minY + maxY) / 2];
+}
+// 제거 대상? = 아메리카 중심 + BORDERPRECISION 1(대략/원주민 추정)
+function shouldDrop(feature) {
+  if (!DROP_AMERICAS_PREC1 || !feature.geometry) return false;
+  const prec = parseInt(feature.properties?.BORDERPRECISION, 10);
+  if (prec !== 1) return false;
+  const [lng, lat] = bboxCenter(feature.geometry);
+  return lng >= AMERICAS_LNG[0] && lng <= AMERICAS_LNG[1] && lat >= AMERICAS_LAT[0] && lat <= AMERICAS_LAT[1];
+}
 
 // 점-선분 수직거리 제곱 (경위도 평면 근사)
 function sqSegDist(p, a, b) {
@@ -88,11 +108,14 @@ async function main() {
   for (const f of files) {
     const srcPath = path.join(SRC, f), raw = await readFile(srcPath, "utf8");
     const geo = JSON.parse(raw);
-    for (const feat of geo.features || []) feat.geometry = simplifyGeometry(feat.geometry);
+    const before = (geo.features || []).length;
+    geo.features = (geo.features || []).filter((feat) => !shouldDrop(feat)); // 아메리카 원주민(정밀도1) 제거
+    const dropped = before - geo.features.length;
+    for (const feat of geo.features) feat.geometry = simplifyGeometry(feat.geometry);
     const out = JSON.stringify(geo); // compact
     await writeFile(path.join(OUT, f), out);
     totalBefore += raw.length; totalAfter += out.length;
-    console.log(`  ${f.padEnd(26)} ${(raw.length / 1048576).toFixed(2)} → ${(out.length / 1048576).toFixed(2)} MB`);
+    console.log(`  ${f.padEnd(26)} ${(raw.length / 1048576).toFixed(2)} → ${(out.length / 1048576).toFixed(2)} MB${dropped ? `  (원주민 ${dropped}개 제거)` : ""}`);
   }
   // index.json 그대로 복사(타임라인 메타)
   try { await copyFile(path.join(SRC, "index.json"), path.join(OUT, "index.json")); } catch {}

@@ -96,6 +96,7 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .scene-progress { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 11px;
   background: rgba(91,157,255,.12); border: 1px solid var(--accent); border-radius: 8px;
   font-size: 13px; font-weight: 600; line-height: 1.4; }
+.scene-progress[hidden] { display: none; } /* hidden 속성이 display:flex 를 이기도록 */
 .scene-progress .sp-flag { flex: 0 0 auto; }
 .scene-progress b { color: var(--accent-2); font-weight: 600; }
 .route-hint { margin-top: 8px; font-size: 12px; color: var(--accent-2); }
