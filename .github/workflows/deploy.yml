@@ -1,0 +1,46 @@
+name: Deploy to GitHub Pages
+
+# content/*.md 나 코드가 바뀌면 manifest·경량 경계를 빌드해 Pages로 배포
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 동시에 한 번만 배포
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 소스(content/*.md, data/borders-src/*)로부터 산출물 생성
+      - name: Build content + slim borders
+        run: |
+          node scripts/build-borders.mjs
+          node scripts/build-manifest.mjs
+
+      - uses: actions/configure-pages@v5
+
+      # 저장소 루트를 그대로 정적 사이트로 업로드(빌드 산출물 포함)
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

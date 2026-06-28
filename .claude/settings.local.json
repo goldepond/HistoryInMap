@@ -11,7 +11,10 @@
       "Bash(node scripts/migrate-to-content.mjs)",
       "Bash(xargs echo \"event files:\")",
       "Bash(xargs echo \"era files:\")",
-      "Bash(xargs echo \"scene files:\")"
+      "Bash(xargs echo \"scene files:\")",
+      "Bash(node --check server.mjs)",
+      "Bash(node --check scripts/build-borders.mjs)",
+      "Bash(node --check scripts/build-manifest.mjs)"
     ]
   }
 }

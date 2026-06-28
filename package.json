@@ -1,9 +1,12 @@
 {
   "name": "history-world-map",
-  "version": "2.0.0",
-  "description": "연도별 세계사 지도 — 시대별 국경 + 지점/경로/영역 사건 + 지도 위 편집(서버 저장)",
+  "version": "4.0.0",
+  "description": "연도별 세계사 지도 — 정적 사이트(읽기 전용). 콘텐츠는 content/*.md(위키/Terraform식)로 git 관리.",
   "type": "module",
   "scripts": {
+    "build": "node scripts/build-borders.mjs && node scripts/build-manifest.mjs",
+    "build:borders": "node scripts/build-borders.mjs",
+    "build:manifest": "node scripts/build-manifest.mjs",
     "start": "node server.mjs",
     "fetch-borders": "node scripts/fetch-borders.mjs"
   },

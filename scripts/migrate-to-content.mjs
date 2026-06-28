@@ -54,7 +54,7 @@ async function migrateScenes() {
 }
 
 async function migrateEras() {
-  const j = JSON.parse(await readFile(path.join(ROOT, "data/borders/index.json"), "utf8"));
+  const j = JSON.parse(await readFile(path.join(ROOT, "data/borders-src/index.json"), "utf8"));
   console.log(`시대 ${j.years.length}개`);
   for (const y of j.years) {
     const data = { year: y.year, borderFile: y.filename, label: y.label || "" };

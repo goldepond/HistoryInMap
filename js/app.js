@@ -1,11 +1,10 @@
-// 연도별 세계사 지도 v3 — 콘텐츠(.md) 기반 / 위키·Terraform식 관리
-// 데이터 원천: content/*.md (프론트매터 + 마크다운). 서버가 매니페스트로 제공하고 편집을 파일에 저장.
-// 기능: 지형(Natural Earth) + 시대별 국경 + 지점/경로/영역 사건(+경로 애니메이션)
-//       + 2단계 타임라인 + 시대/장면/사건을 모두 추가·수정·삭제(원문 .md 편집)
+// 연도별 세계사 지도 v4 — 순수 정적(읽기 전용) / 콘텐츠는 git의 content/*.md 로 관리
+// 데이터: content/manifest.json (빌드 산출물) + data/borders/*.geojson(경량) + data/basemap/*
+// 기능: 지형(Natural Earth) + 시대별 국경 + 지점/경로/영역 사건(+경로 애니메이션) + 2단계 타임라인
 
 const BASE_DIR = "data/basemap/";
 const BORDERS_DIR = "data/borders/";
-const MANIFEST_FALLBACK = "content/manifest.json";
+const MANIFEST_URL = "content/manifest.json";
 
 const REGION_COLORS = {
   "유럽": "#6ea8fe", "남미": "#74d99f", "동아시아": "#ff9e6b",
@@ -20,8 +19,7 @@ const state = {
   mode: "global", scene: null, year: 1490, globalYear: 1490,
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
-  baseLevel: null, editing: false, playTimer: null, anim: null,
-  docCtx: null, apiAvailable: null,
+  baseLevel: null, playTimer: null, anim: null,
 };
 
 const $ = (s) => document.querySelector(s);
@@ -51,33 +49,9 @@ function escapeHtml(s) {
 }
 async function fetchJSON(url) { const r = await fetch(url); if (!r.ok) throw new Error(`${url} (${r.status})`); return r.json(); }
 function showLoading(msg) { const el = $("#loading"); el.hidden = !msg; if (msg) el.textContent = msg; }
-function downloadText(filename, text, type = "text/markdown") {
-  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type }));
-  a.download = filename; a.click(); URL.revokeObjectURL(a.href);
-}
-function setSaveStatus(text, kind = "") { const el = $("#save-status"); if (el) { el.textContent = text; el.dataset.kind = kind; } }
 
-// ─── 서버 API (없으면 폴백)
-async function probeApi() {
-  try { const r = await fetch("/api/content", { method: "OPTIONS" }); state.apiAvailable = r.ok || r.status === 204; }
-  catch { state.apiAvailable = false; }
-  setSaveStatus(state.apiAvailable ? "서버 연결됨 · 자동 저장" : "서버 미연결 · 파일로 내보내기", state.apiAvailable ? "ok" : "warn");
-}
-async function apiSend(method, pathStr, body) {
-  try {
-    const res = await fetch(pathStr, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
-    if (!res.ok) throw new Error("status " + res.status);
-    state.apiAvailable = true; return await res.json().catch(() => ({}));
-  } catch { state.apiAvailable = false; return null; }
-}
-
-// ─── 매니페스트 로드/적용
-async function loadManifest() {
-  let man = null;
-  try { man = await fetchJSON("/api/content"); state.apiAvailable = true; }
-  catch { man = await fetchJSON(MANIFEST_FALLBACK); state.apiAvailable = false; }
-  return man;
-}
+// ─── 매니페스트
+async function loadManifest() { return fetchJSON(MANIFEST_URL); }
 function applyManifest(man) {
   state.eras = (man.eras || []).slice().sort((a, b) => a.year - b.year);
   state.years = state.eras.map((e) => ({ year: e.year, filename: e.borderFile, label: e.label || "" }));
@@ -139,9 +113,7 @@ function showBorderLayer(gj, filename) {
   borderLayer.clearLayers(); borderLayer.addLayer(gj);
   state.currentBorderGeoLayer = gj; state.currentBorderFilename = filename;
   $("#legend").hidden = false;
-  if (state.editing && $("#edit-borders").checked) enableBorderEdit(true);
 }
-
 // 슬라이더를 빠르게 끌 때 무거운 파일을 연속 파싱하지 않도록 경계 로딩을 디바운스
 let borderTimer = null, pendingBorderYear = null;
 function scheduleBorders(year) {
@@ -149,7 +121,7 @@ function scheduleBorders(year) {
   const badge = $("#border-badge");
   if (snap) { badge.hidden = false; badge.innerHTML = `경계 기준: <strong>${yearText(snap.year)}</strong>` + (snap.year !== year ? ` <span class="muted">(가장 가까운 시대 지도)</span>` : ""); }
   if (!snap || state.currentBorderFilename === snap.filename) return;
-  if (builtBorders.has(snap.filename)) { showBorderLayer(builtBorders.get(snap.filename), snap.filename); return; } // 캐시 즉시
+  if (builtBorders.has(snap.filename)) { showBorderLayer(builtBorders.get(snap.filename), snap.filename); return; }
   pendingBorderYear = year;
   clearTimeout(borderTimer);
   borderTimer = setTimeout(() => renderBorders(pendingBorderYear), 110);
@@ -175,7 +147,6 @@ async function renderBorders(targetYear) {
 
 // ─── 사건 필터 + 렌더
 function activeEvents() {
-  if (state.editing) return state.events;
   const half = (state.mode === "scene" ? (state.scene.step || 1) : GLOBAL_STEP) / 2;
   const from = state.year - half, to = state.year + half;
   const bounds = state.mode === "scene" ? L.latLngBounds(state.scene.bounds) : null;
@@ -193,21 +164,15 @@ function renderEvents() {
   for (const ev of active) { drawEvent(ev); if (!byRegion.has(ev.region)) byRegion.set(ev.region, []); byRegion.get(ev.region).push(ev); }
   renderPanel(byRegion, active.length);
 }
-function attachEdit(ev, layer, type) {
-  if (!state.editing) return;
-  layer.on("pm:edit", () => updateEventGeometry(ev.id, layer, type));
-  layer.on("pm:dragend", () => updateEventGeometry(ev.id, layer, type));
-  layer.on("pm:remove", () => deleteDoc("events", ev.id));
-}
 function drawEvent(ev) {
   const color = REGION_COLORS[ev.region] || DEFAULT_REGION_COLOR;
   if (ev.geom.type === "point") {
     const m = L.circleMarker(ev.geom.latlng, { pane: "eventPane", radius: 7, color: "#0b1020", weight: 1.5, fillColor: color, fillOpacity: 0.95 });
-    m.bindPopup(popupHtml(ev), { maxWidth: 340 }); m.eventId = ev.id; eventLayer.addLayer(m); attachEdit(ev, m, "point");
+    m.bindPopup(popupHtml(ev), { maxWidth: 340 }); m.eventId = ev.id; eventLayer.addLayer(m);
   } else if (ev.geom.type === "route") {
     const line = L.polyline(ev.geom.latlngs, { pane: "eventPane", color, weight: 3, opacity: 0.9, dashArray: "6,5" });
-    line.bindPopup(popupHtml(ev), { maxWidth: 340 }); line.eventId = ev.id; eventLayer.addLayer(line); attachEdit(ev, line, "route");
-    if (!state.editing) ev.geom.latlngs.forEach((ll, i) => {
+    line.bindPopup(popupHtml(ev), { maxWidth: 340 }); line.eventId = ev.id; eventLayer.addLayer(line);
+    ev.geom.latlngs.forEach((ll, i) => {
       const wp = ev.geom.waypoints?.[i];
       const dot = L.circleMarker(ll, { pane: "eventPane", radius: 4, color: "#0b1020", weight: 1, fillColor: color, fillOpacity: 1 });
       if (wp) dot.bindTooltip(`${i + 1}. ${escapeHtml(wp.name)}${wp.date ? " · " + escapeHtml(wp.date) : ""}`, { direction: "top" });
@@ -215,7 +180,7 @@ function drawEvent(ev) {
     });
   } else {
     const poly = L.polygon(ev.geom.rings, { pane: "eventPane", color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18, dashArray: "5,5" });
-    poly.bindPopup(popupHtml(ev), { maxWidth: 340 }); poly.eventId = ev.id; eventLayer.addLayer(poly); attachEdit(ev, poly, "area");
+    poly.bindPopup(popupHtml(ev), { maxWidth: 340 }); poly.eventId = ev.id; eventLayer.addLayer(poly);
   }
 }
 function popupHtml(ev) {
@@ -229,32 +194,21 @@ function popupHtml(ev) {
 }
 function renderPanel(byRegion, total) {
   const list = $("#region-list"); list.innerHTML = "";
-  if (total === 0) { list.innerHTML = '<div class="empty-note">이 시점에는 표시할 사건이 없습니다.<br>슬라이더를 움직이거나 ✎ 편집으로 추가하세요.</div>'; return; }
+  if (total === 0) { list.innerHTML = '<div class="empty-note">이 시점에는 표시할 사건이 없습니다.<br>슬라이더를 움직여 다른 시대를 보거나, content/events 에 .md 를 추가하세요.</div>'; return; }
   const order = Object.keys(REGION_COLORS);
   const regions = [...byRegion.keys()].sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
   for (const region of regions) {
     const group = document.createElement("div"); group.className = "region-group";
     group.innerHTML = `<div class="region-group-head"><span class="region-dot r-${region}"></span>${escapeHtml(region)}<span class="region-count">${byRegion.get(region).length}건</span></div>`;
     for (const ev of byRegion.get(region)) {
-      const item = document.createElement("div"); item.className = "event-item" + (state.editing ? " editing" : "");
+      const item = document.createElement("div"); item.className = "event-item";
       const period = ev.end != null ? `${yearShort(ev.start)}~${yearShort(ev.end)}` : yearShort(ev.start);
-      const main = document.createElement("div"); main.className = "ev-main";
-      main.innerHTML = `<div class="event-title">${escapeHtml(ev.title)}<span class="geo-tag">${GEO_LABEL[ev.geom.type]}</span></div><div class="event-meta">${period} · ${escapeHtml(ev.region)}</div>`;
-      main.addEventListener("click", () => focusEvent(ev.id));
-      item.appendChild(main);
-      if (state.editing) item.appendChild(rowActions(() => openDoc("events", ev.id), () => confirm(`'${ev.title}' 삭제?`) && deleteDoc("events", ev.id)));
+      item.innerHTML = `<div class="ev-main"><div class="event-title">${escapeHtml(ev.title)}<span class="geo-tag">${GEO_LABEL[ev.geom.type]}</span></div><div class="event-meta">${period} · ${escapeHtml(ev.region)}</div></div>`;
+      item.addEventListener("click", () => focusEvent(ev.id));
       group.appendChild(item);
     }
     list.appendChild(group);
   }
-}
-function rowActions(onEdit, onDel) {
-  const act = document.createElement("div"); act.className = "ev-actions";
-  const eb = document.createElement("button"); eb.className = "mini"; eb.textContent = "✏"; eb.title = "수정(.md)";
-  eb.addEventListener("click", (e) => { e.stopPropagation(); onEdit(); });
-  const db = document.createElement("button"); db.className = "mini danger"; db.textContent = "🗑"; db.title = "삭제";
-  db.addEventListener("click", (e) => { e.stopPropagation(); onDel(); });
-  act.append(eb, db); return act;
 }
 function focusEvent(id) {
   let t = null; eventLayer.eachLayer((l) => { if (l.eventId === id) t = l; });
@@ -328,161 +282,11 @@ function exitScene() {
   buildTimeline(); map.setView([25, 15], 2); setYear(state.globalYear);
 }
 
-// ─── 편집 (Geoman)
-function toggleEdit() {
-  state.editing = !state.editing;
-  $("#edit-toggle").setAttribute("aria-pressed", String(state.editing));
-  $("#edit-panel").hidden = !state.editing;
-  $("#manage-panel").hidden = !state.editing;
-  if (state.editing) {
-    map.pm.addControls({ position: "topright", drawMarker: true, drawPolyline: true, drawPolygon: true,
-      drawCircle: false, drawCircleMarker: false, drawRectangle: false, drawText: false, editMode: true, dragMode: true, removalMode: true, rotateMode: false, cutPolygon: false });
-    try { map.pm.setLang("ko"); } catch {}
-    if (state.apiAvailable === null) probeApi(); else setSaveStatus(state.apiAvailable ? "서버 연결됨 · 자동 저장" : "서버 미연결 · 파일로 내보내기", state.apiAvailable ? "ok" : "warn");
-    renderManage();
-  } else { map.pm.removeControls(); enableBorderEdit(false); }
-  renderEvents();
-}
-function enableBorderEdit(on) {
-  if (!state.currentBorderGeoLayer) return;
-  state.currentBorderGeoLayer.eachLayer((l) => { if (l.pm) on ? l.pm.enable({ allowSelfIntersection: false }) : l.pm.disable(); });
-}
-map.on("pm:create", (e) => {
-  const shape = { Marker: "point", Line: "route", Polygon: "area" }[e.shape];
-  if (!shape) { e.layer.remove(); return; }
-  const raw = eventTemplate(shape, geomToFile(e.layer, shape).coordinates);
-  openDoc("events", `evt-${Date.now()}`, { isNew: true, layer: e.layer, raw });
-});
-function geomToFile(layer, geometry) {
-  if (geometry === "point") { const { lat, lng } = layer.getLatLng(); return { coordinates: [lng, lat] }; }
-  if (geometry === "route") return { coordinates: layer.getLatLngs().map((p) => [p.lng, p.lat]) };
-  const ring = layer.getLatLngs()[0].map((p) => [p.lng, p.lat]); if (ring.length) ring.push(ring[0]); return { coordinates: [ring] };
-}
-async function updateEventGeometry(id, layer, type) {
-  const g = geomToFile(layer, type); const ev = state.events.find((e) => e.id === id);
-  const payload = { geometry: type, coordinates: g.coordinates };
-  if (type === "route" && ev?.geom.waypoints && ev.geom.waypoints.length === g.coordinates.length)
-    { payload.waypoints = ev.geom.waypoints.map((w, i) => ({ ...w, lng: g.coordinates[i][0], lat: g.coordinates[i][1] })); delete payload.coordinates; }
-  const r = await apiSend("PUT", `/api/content/events/${id}/geometry`, payload);
-  if (r) { setSaveStatus("저장됨 ✓", "ok"); await reloadAndRender(); }
-  else setSaveStatus("서버 미연결 — 위치 변경 미저장", "warn");
-}
-
-// ─── 문서 편집기 (위키식 원문 .md)
-function eventTemplate(geometry, coordinates) {
-  return ["---", "title: 새 사건", "region: 유럽", "category: ", `start: ${state.year}`, "end: ",
-    `geometry: ${geometry}`, `coordinates: ${JSON.stringify(coordinates)}`,
-    geometry === "route" ? "animate: true" : null, "---", "", "여기에 **마크다운**으로 내용을 작성하세요.", ""]
-    .filter((l) => l !== null).join("\n");
-}
-function sceneTemplate() {
-  const b = map.getBounds();
-  return ["---", "title: 새 장면", `start: ${state.year}`, `end: ${state.year + 20}`, "step: 1",
-    `borderYear: ${nearestBorder(state.year).year}`,
-    `bounds: [[${b.getSouth().toFixed(1)},${b.getWest().toFixed(1)}],[${b.getNorth().toFixed(1)},${b.getEast().toFixed(1)}]]`,
-    "---", "", "장면 설명을 적으세요.", ""].join("\n");
-}
-function eraTemplate() {
-  return ["---", `year: ${state.year}`, `borderFile: ${state.currentBorderFilename || "world_1492.geojson"}`, "label: 새 시대",
-    "---", "", "이 시대에 대한 설명.", ""].join("\n");
-}
-async function openDoc(type, id, opts = {}) {
-  let raw = opts.raw;
-  if (raw == null) { // 기존 문서 → 원문 가져오기
-    try { raw = await (await fetch(`content/${type}/${id}.md`)).text(); }
-    catch { raw = ""; }
-  }
-  state.docCtx = { type, id, isNew: !!opts.isNew, layer: opts.layer || null };
-  $("#doc-title").textContent = `${opts.isNew ? "새 " : ""}${docTypeLabel(type)} · ${id}.md`;
-  $("#doc-raw").value = raw;
-  $("#doc-delete").style.display = opts.isNew ? "none" : "";
-  renderDocPreview();
-  $("#doc-modal").hidden = false;
-  $("#doc-raw").focus();
-}
-const docTypeLabel = (t) => ({ events: "사건", scenes: "장면", eras: "시대" }[t] || t);
-function splitBody(raw) { const m = /^---\s*\n[\s\S]*?\n---\s*\n?([\s\S]*)$/.exec(raw); return m ? m[1] : raw; }
-function renderDocPreview() { $("#doc-preview").innerHTML = md(splitBody($("#doc-raw").value)); }
-async function saveDoc() {
-  const ctx = state.docCtx; if (!ctx) return;
-  const raw = $("#doc-raw").value;
-  setSaveStatus("저장 중…", "pending");
-  const r = await apiSend("PUT", `/api/content/${ctx.type}/${ctx.id}`, { raw });
-  if (r) {
-    if (ctx.isNew && ctx.layer) ctx.layer.remove();
-    setSaveStatus("저장됨 ✓", "ok"); $("#doc-modal").hidden = true; state.docCtx = null;
-    await reloadAndRender();
-  } else {
-    setSaveStatus("서버 미연결 → .md 다운로드", "warn");
-    downloadText(`${ctx.id}.md`, raw);
-    alert(`서버가 없어 파일로 내려받았습니다.\ncontent/${ctx.type}/ 에 넣고 새로고침하세요.`);
-  }
-}
-async function deleteDoc(type, id) {
-  const r = await apiSend("DELETE", `/api/content/${type}/${id}`);
-  if (r) { setSaveStatus("삭제됨 ✓", "ok"); if (state.docCtx?.id === id) { $("#doc-modal").hidden = true; state.docCtx = null; } await reloadAndRender(); }
-  else setSaveStatus("서버 미연결 — 삭제는 파일을 직접 지우세요", "warn");
-}
-function cancelDoc() {
-  if (state.docCtx?.isNew && state.docCtx.layer) state.docCtx.layer.remove();
-  state.docCtx = null; $("#doc-modal").hidden = true;
-}
-
-// ─── 관리 패널(시대·장면 추가/수정/삭제)
-function renderManage() {
-  const eras = $("#manage-eras"); eras.innerHTML = "";
-  for (const e of state.eras) {
-    const row = document.createElement("div"); row.className = "manage-item";
-    row.innerHTML = `<span>${yearShort(e.year)} · ${escapeHtml(e.label || e.borderFile)}</span>`;
-    row.appendChild(rowActions(() => openDoc("eras", e.id), () => confirm(`시대 '${e.label || e.id}' 삭제?`) && deleteDoc("eras", e.id)));
-    eras.appendChild(row);
-  }
-  const scenes = $("#manage-scenes"); scenes.innerHTML = "";
-  for (const s of state.scenes) {
-    const row = document.createElement("div"); row.className = "manage-item";
-    row.innerHTML = `<span>${escapeHtml(s.title)}</span>`;
-    row.appendChild(rowActions(() => openDoc("scenes", s.id), () => confirm(`장면 '${s.title}' 삭제?`) && deleteDoc("scenes", s.id)));
-    scenes.appendChild(row);
-  }
-}
-
-// ─── 국경 저장 / 내보내기
-async function saveBorders() {
-  if (!state.currentBorderGeoLayer) return;
-  const geo = state.currentBorderGeoLayer.toGeoJSON(); const fn = state.currentBorderFilename;
-  setSaveStatus("경계 저장 중…", "pending");
-  const r = await apiSend("PUT", `/api/borders/${fn}`, geo);
-  if (r) { state.borderCache.set(fn, geo); setSaveStatus(`경계 저장됨 ✓ (${fn})`, "ok"); }
-  else { setSaveStatus("서버 미연결 → 파일로 내려받음", "warn"); downloadText(fn, JSON.stringify(geo), "application/json"); }
-}
-
-// ─── 재로딩
-async function reloadAndRender() {
-  const man = await loadManifest();
-  applyManifest(man);
-  buildSceneSelect();
-  if (state.mode === "scene") { const sc = state.scenes.find((s) => s.id === state.scene.id); if (sc) state.scene = sc; else return exitScene(); }
-  state.currentBorderFilename = null; // 시대/경계가 바뀌었을 수 있음
-  builtBorders.clear(); state.borderCache.clear(); // 디스크 변경 반영 위해 캐시 비움
-  buildTimeline();
-  setYear(Math.max(+slider.min, Math.min(+slider.max, state.year)));
-  if (state.editing) renderManage();
-}
-
 // ─── UI 바인딩
 function bindUI() {
   slider.addEventListener("input", () => setYear(parseInt(slider.value, 10), { fromSlider: true }));
   $("#play-btn").addEventListener("click", togglePlay);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
-  $("#edit-toggle").addEventListener("click", toggleEdit);
-  $("#edit-borders").addEventListener("change", (e) => enableBorderEdit(e.target.checked));
-  $("#save-borders").addEventListener("click", saveBorders);
-  $("#add-era").addEventListener("click", () => openDoc("eras", `era-${Date.now()}`, { isNew: true, raw: eraTemplate() }));
-  $("#add-scene").addEventListener("click", () => openDoc("scenes", `scene-${Date.now()}`, { isNew: true, raw: sceneTemplate() }));
-  $("#doc-raw").addEventListener("input", renderDocPreview);
-  $("#doc-save").addEventListener("click", saveDoc);
-  $("#doc-delete").addEventListener("click", () => { const c = state.docCtx; if (c && confirm("이 문서를 삭제할까요?")) deleteDoc(c.type, c.id); });
-  $("#doc-cancel").addEventListener("click", cancelDoc);
   $("#info-toggle").addEventListener("click", () => ($("#info-modal").hidden = false));
   $("#info-close").addEventListener("click", () => ($("#info-modal").hidden = true));
   $("#info-modal").addEventListener("click", (e) => { if (e.target.id === "info-modal") $("#info-modal").hidden = true; });
@@ -490,7 +294,7 @@ function bindUI() {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
     if (e.key === "ArrowRight") setYear(Math.min(+slider.max, state.year + (+slider.step)));
     if (e.key === "ArrowLeft") setYear(Math.max(+slider.min, state.year - (+slider.step)));
-    if (e.key === "Escape") { $("#info-modal").hidden = true; cancelDoc(); }
+    if (e.key === "Escape") $("#info-modal").hidden = true;
   });
 }
 function togglePlay() {
@@ -506,12 +310,12 @@ async function init() {
     showLoading("데이터 로딩 중…");
     const man = await loadManifest();
     applyManifest(man);
-    if (!state.years.length) throw new Error("시대(eras)가 없습니다. migrate 스크립트를 실행했나요?");
+    if (!state.years.length) throw new Error("시대(eras)가 없습니다. content/manifest.json 을 빌드했나요? (npm run build)");
     await ensureBase("110m");
     buildSceneSelect(); bindUI();
     state.year = state.globalYear = 1490;
     buildTimeline(); setYear(1490);
     showLoading(null);
-  } catch (e) { console.error(e); showLoading("⚠ " + e.message + " — node server.mjs 로 열었는지 확인하세요."); }
+  } catch (e) { console.error(e); showLoading("⚠ " + e.message); }
 }
 init();

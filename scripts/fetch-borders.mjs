@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const OUT_DIR = path.join(ROOT, "data", "borders");
+const OUT_DIR = path.join(ROOT, "data", "borders-src"); // 원본 보존. 이후 `npm run build:borders`로 경량화
 const RAW = "https://raw.githubusercontent.com/aourednik/historical-basemaps/master";
 
 // CLI 옵션

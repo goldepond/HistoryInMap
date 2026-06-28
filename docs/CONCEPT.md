@@ -194,3 +194,37 @@ era = `year` + `borderFile`(표시할 국경 GeoJSON) + `label`.
 
 완전 무료·자체 호스팅·외부 호출 0·반응형 유지. marked(MIT)를 로컬 번들.
 읽기 전용 공개는 `content/manifest.json` 으로 정적 호스팅 가능. 본문 HTML 살균은 공개 환경용 향후 과제.
+
+---
+
+## 14. v4 — 순수 정적 + Git 관리 + 속도 최적화 (구현 완료)
+
+콘텐츠가 `.md` 파일 기반이 된 이상 인앱 편집(서버 의존)은 불필요 → **편집 기능을 전부 제거**하고
+**작성은 git으로, 배포는 GitHub Actions로** 자동화했다. 원 컨셉의 "순수 정적 사이트" 제약으로 복귀한다.
+
+### 14.1 변경
+
+- **인앱 편집 제거** — Geoman(드로잉), 문서 편집기, 관리 패널, `/api/*` 저장 레이어, 저장 상태 UI 삭제.
+  `js/app.js` 는 읽기 전용 렌더만 남기고, `loadManifest()`는 `content/manifest.json`만 읽는다.
+- **속도 최적화**
+  - Geoman(약 308KB) 로드 제거.
+  - **빌드 시 경계 경량화** — `data/borders-src/`(원본) → `data/borders/`(표시용).
+    Douglas–Peucker 단순화 + 좌표 3자리 반올림 + compact JSON ⇒ 약 70% 용량 감소(`scripts/build-borders.mjs`).
+  - 기존 캔버스 렌더링 + 레이어 캐시 + 스크럽 디바운스 유지.
+- **Git 워크플로** — `.md` 수정 → push → `.github/workflows/deploy.yml` 가
+  `build-borders` + `build-manifest` 실행 후 GitHub Pages로 배포.
+  매니페스트·경량 경계는 **빌드 산출물(.gitignore)** 이라 커밋하지 않는다.
+
+### 14.2 빌드 파이프라인
+
+```
+content/*.md ─(build-manifest)→ content/manifest.json ─┐
+data/borders-src/*.geojson ─(build-borders)→ data/borders/*.geojson ─┴→ GitHub Pages
+```
+
+로컬 미리보기는 `npm run build` 후 `server.mjs`(정적 전용) 또는 `npx serve`.
+
+### 14.3 제약 복원
+
+완전 무료 / **순수 정적**(런타임 서버·외부 호출 0) / 자체 호스팅(GitHub Pages) / 반응형 — 모두 충족.
+자산 경로는 전부 상대경로라 프로젝트 하위경로(`/HistoryInMap/`)에서도 동작. 본문 살균은 여전히 향후 과제.
