@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>연도별 세계사 지도 — 시대로 보는 세계</title>
+  <meta name="description" content="시대별 세계사를 지도 위에서 병렬 비교하고, 시대·장면·사건을 마크다운(.md)으로 직접 편집하는 위키형 지도." />
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
+  <link rel="stylesheet" href="vendor/geoman/leaflet-geoman.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <h1>시대로 보는 세계사 지도</h1>
+      <p class="subtitle">타임라인 · 지역 비교 · 경로 애니메이션 · 마크다운 편집</p>
+    </div>
+    <div class="header-actions">
+      <button id="edit-toggle" class="hbtn" aria-pressed="false">✎ 편집</button>
+      <button id="info-toggle" class="hbtn" aria-label="안내 보기">ⓘ 안내</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <main class="map-wrap">
+      <div id="map" role="application" aria-label="역사 지도"></div>
+      <div id="loading" class="loading-badge" hidden>로딩 중…</div>
+      <div id="border-badge" class="border-badge" hidden></div>
+
+      <div id="edit-panel" class="edit-panel" hidden>
+        <div class="edit-row head"><strong>편집 모드</strong><span id="save-status" class="save-status"></span></div>
+        <div class="edit-row"><span class="muted">지도 도구로 그리거나, 패널에서 ✏ 원문(.md)을 직접 편집. 변경은 <b>자동 저장</b>됩니다.</span></div>
+        <div class="edit-row"><label><input type="checkbox" id="edit-borders" /> 국경 폴리곤 편집(오류 수정)</label></div>
+        <div class="edit-row btns"><button id="save-borders" class="hbtn small primary">이 시대 경계 저장</button></div>
+      </div>
+
+      <div class="disclaimer">⚠ 일부 시대의 국경·경로는 학술적으로 불확실합니다. <strong>참고용이며 학술 인용 전 교차검증이 필요</strong>합니다.</div>
+
+      <div id="legend" class="legend" hidden>
+        <div class="legend-title">경계 정밀도</div>
+        <div class="legend-row"><span class="swatch prec-3"></span>3 · 확정</div>
+        <div class="legend-row"><span class="swatch prec-2"></span>2 · 보통</div>
+        <div class="legend-row"><span class="swatch prec-1"></span>1 · 대략(흐림)</div>
+      </div>
+    </main>
+
+    <aside class="regions" id="regions" aria-label="지역별 사건">
+      <div class="scene-box">
+        <label for="scene-select" class="scene-label">🎬 장면(지역 포커스)</label>
+        <select id="scene-select" class="scene-select"><option value="">— 전 세계 보기 (10년 단위) —</option></select>
+        <p id="scene-desc" class="scene-desc"></p>
+      </div>
+
+      <!-- 관리 패널: 편집 모드에서만 -->
+      <div id="manage-panel" class="manage-panel" hidden>
+        <div class="manage-group">
+          <div class="manage-head">🕰 시대(타임라인) <button id="add-era" class="mini add" title="시대 추가">＋</button></div>
+          <div id="manage-eras" class="manage-list"></div>
+        </div>
+        <div class="manage-group">
+          <div class="manage-head">🎬 장면 <button id="add-scene" class="mini add" title="장면 추가">＋</button></div>
+          <div id="manage-scenes" class="manage-list"></div>
+        </div>
+      </div>
+
+      <h2 class="regions-title">이 시대의 지역별 사건</h2>
+      <div id="region-list" class="region-list"></div>
+    </aside>
+  </div>
+
+  <footer class="timeline">
+    <div class="timeline-head">
+      <button id="play-btn" class="play-btn" aria-label="자동 재생">▶</button>
+      <div class="year-display"><span id="year-label" class="year-label">연도</span><span id="year-sub" class="year-sub"></span></div>
+      <span id="mode-badge" class="mode-badge">전 세계 · 10년</span>
+    </div>
+    <div class="slider-wrap">
+      <input id="year-slider" class="year-slider" type="range" min="0" max="0" step="1" value="0" aria-label="연도 슬라이더" />
+      <div id="tick-labels" class="tick-labels"></div>
+    </div>
+  </footer>
+
+  <!-- 문서 편집기 (위키식 원문 .md) -->
+  <div id="doc-modal" class="modal" hidden>
+    <div class="modal-card wide">
+      <button id="doc-cancel" class="modal-close" aria-label="닫기">×</button>
+      <h2 id="doc-title">문서 편집</h2>
+      <p class="muted small">상단 <code>--- … ---</code> 는 메타데이터(좌표·연도·지역 등), 그 아래는 마크다운 본문입니다.</p>
+      <div class="doc-grid">
+        <textarea id="doc-raw" class="doc-raw" spellcheck="false" placeholder="--- ... ---&#10;본문"></textarea>
+        <div id="doc-preview" class="doc-preview md-body"></div>
+      </div>
+      <div class="doc-actions">
+        <button id="doc-delete" class="hbtn small danger">삭제</button>
+        <span class="spacer"></span>
+        <button id="doc-cancel2" class="hbtn small" onclick="document.getElementById('doc-cancel').click()">취소</button>
+        <button id="doc-save" class="hbtn small primary">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 안내 -->
+  <div id="info-modal" class="modal" hidden>
+    <div class="modal-card">
+      <button id="info-close" class="modal-close" aria-label="닫기">×</button>
+      <h2>이 사이트에 대하여</h2>
+      <ul>
+        <li><strong>타임라인</strong> — 전 세계 10년 단위. <em>장면</em>을 고르면 지역 포커스 + 연 단위.</li>
+        <li><strong>모든 것이 편집 가능</strong> — 시대·장면·사건을 <b>마크다운(.md)</b>으로 직접 추가·수정·삭제.</li>
+        <li><strong>사건 형태</strong> — 지점·경로(애니메이션)·영역. 지도에서 그리면 좌표가 채워집니다.</li>
+        <li><strong>관리 방식</strong> — 데이터는 <code>content/*.md</code> 파일(위키·Terraform식). 편집은 서버가 파일에 저장.</li>
+      </ul>
+      <p class="muted">경계 historical-basemaps (GPL-3.0) · 지형 Natural Earth (PD) · 편집 Leaflet-Geoman (MIT) · 마크다운 marked (MIT)</p>
+    </div>
+  </div>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/geoman/leaflet-geoman.min.js"></script>
+  <script src="vendor/marked/marked.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

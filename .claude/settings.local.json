@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Force | Select-Object Name, Length; \"---NET TEST---\"; try { \\(Invoke-WebRequest -Uri \"https://unpkg.com/leaflet@1.9.4/dist/leaflet.js\" -Method Head -TimeoutSec 15\\).StatusCode } catch { \"NO NETWORK: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { $i = Invoke-WebRequest -Uri \"https://raw.githubusercontent.com/aourednik/historical-basemaps/master/index.json\" -TimeoutSec 30; $i.Content.Substring\\(0, [Math]::Min\\(1200, $i.Content.Length\\)\\) } catch { \"ERR index.json: $\\($_.Exception.Message\\)\" })",
+      "PowerShell(try { \\(Invoke-WebRequest -Uri \"https://api.github.com/repos/aourednik/historical-basemaps/contents/geojson\" -Headers @{ \"User-Agent\"=\"claude\" } -TimeoutSec 30\\).Content | ConvertFrom-Json | Select-Object -ExpandProperty name } catch { \"ERR list: $\\($_.Exception.Message\\)\" })",
+      "Bash(node --check js/app.js)",
+      "Bash(node --check scripts/fetch-borders.mjs)",
+      "Bash(node -e ' *)",
+      "Bash(kill %1)",
+      "Bash(node scripts/migrate-to-content.mjs)",
+      "Bash(xargs echo \"event files:\")",
+      "Bash(xargs echo \"era files:\")",
+      "Bash(xargs echo \"scene files:\")"
+    ]
+  }
+}

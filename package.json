@@ -1,0 +1,11 @@
+{
+  "name": "history-world-map",
+  "version": "2.0.0",
+  "description": "연도별 세계사 지도 — 시대별 국경 + 지점/경로/영역 사건 + 지도 위 편집(서버 저장)",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "fetch-borders": "node scripts/fetch-borders.mjs"
+  },
+  "license": "GPL-3.0"
+}

@@ -1,0 +1,881 @@
+{
+  "events": [
+    {
+      "id": "bc2000-ea-erlitou",
+      "title": "얼리터우 문화 (하 왕조 추정)",
+      "region": "동아시아",
+      "category": "",
+      "start": -2000,
+      "end": -1600,
+      "geometry": "point",
+      "coordinates": [
+        112.7,
+        34.7
+      ],
+      "body": "황허 중류에서 초기 청동기 도시 문화가 발전. 중국 최초 왕조로 추정되는 하(夏)와 연결되는 시기."
+    },
+    {
+      "id": "bc2000-eu-minoan",
+      "title": "크레타 미노아 궁전 문명",
+      "region": "유럽",
+      "category": "",
+      "start": -2000,
+      "end": -1450,
+      "geometry": "point",
+      "coordinates": [
+        25.16,
+        35.3
+      ],
+      "body": "크노소스를 중심으로 한 유럽 최초의 해양 문명. 선형문자 A와 거대한 궁전 복합체를 남김."
+    },
+    {
+      "id": "bc2000-wa-ur",
+      "title": "우르 제3왕조의 쇠퇴",
+      "region": "서아시아",
+      "category": "",
+      "start": -2000,
+      "geometry": "point",
+      "coordinates": [
+        46.1,
+        30.96
+      ],
+      "body": "메소포타미아 수메르 도시국가 우르가 엘람과 아모리인의 압박으로 무너지며 고바빌로니아 시대로 이행."
+    },
+    {
+      "id": "bc323-ea-warring",
+      "title": "전국시대 후기",
+      "region": "동아시아",
+      "category": "",
+      "start": -323,
+      "end": -221,
+      "geometry": "point",
+      "coordinates": [
+        108.9,
+        34.3
+      ],
+      "body": "진(秦)을 비롯한 칠웅이 패권을 다투던 시기. 곧 진의 통일로 이어짐."
+    },
+    {
+      "id": "bc323-eu-alexander",
+      "title": "알렉산드로스 대왕 사망",
+      "region": "유럽",
+      "category": "",
+      "start": -323,
+      "geometry": "point",
+      "coordinates": [
+        44.4,
+        32.5
+      ],
+      "body": "바빌론에서 알렉산드로스가 사망하며 대제국이 디아도코이들에게 분할됨. 헬레니즘 시대의 시작."
+    },
+    {
+      "id": "bc323-sa-chavin",
+      "title": "차빈 문화의 영향권",
+      "region": "남미",
+      "category": "",
+      "start": -323,
+      "geometry": "point",
+      "coordinates": [
+        -77.18,
+        -9.6
+      ],
+      "body": "안데스 고지대 차빈 데 우안타르를 중심으로 한 종교·문화 복합체가 페루 일대에 확산."
+    },
+    {
+      "id": "caesar-gallic-wars",
+      "title": "카이사르의 갈리아 원정",
+      "region": "유럽",
+      "category": "전쟁",
+      "start": -58,
+      "end": -50,
+      "geometry": "route",
+      "waypoints": [
+        {
+          "name": "제네바 — 헬베티족 저지",
+          "lng": 6.14,
+          "lat": 46.2,
+          "date": "BC 58"
+        },
+        {
+          "name": "비브락테 전투",
+          "lng": 4.2,
+          "lat": 46.9,
+          "date": "BC 58"
+        },
+        {
+          "name": "베손티오(브장송)",
+          "lng": 6.02,
+          "lat": 47.24,
+          "date": "BC 58"
+        },
+        {
+          "name": "게르고비아 공방",
+          "lng": 3.12,
+          "lat": 45.72,
+          "date": "BC 52"
+        },
+        {
+          "name": "알레시아 포위전 (결정적 승리)",
+          "lng": 4.5,
+          "lat": 47.54,
+          "date": "BC 52"
+        }
+      ],
+      "animate": true,
+      "sceneId": "gallic-wars",
+      "body": "기원전 58~50년 카이사르가 갈리아 전역을 정복한 원정. 알레시아에서 베르킨게토릭스를 격파하며 갈리아를 로마 영토로 편입."
+    },
+    {
+      "id": "100-ea-han",
+      "title": "후한(後漢) 전성기",
+      "region": "동아시아",
+      "category": "",
+      "start": 100,
+      "geometry": "point",
+      "coordinates": [
+        112.45,
+        34.62
+      ],
+      "body": "뤄양을 수도로 한 후한이 비단길을 통해 로마 세계와 간접 교역. 제지술이 정착."
+    },
+    {
+      "id": "100-eu-rome",
+      "title": "로마 제국 5현제 시대",
+      "region": "유럽",
+      "category": "",
+      "start": 100,
+      "geometry": "point",
+      "coordinates": [
+        12.5,
+        41.9
+      ],
+      "body": "트라야누스 치세를 전후해 로마가 최대 판도에 근접. 지중해 세계의 통합 절정."
+    },
+    {
+      "id": "100-sa-moche",
+      "title": "모체 문화 발흥",
+      "region": "남미",
+      "category": "",
+      "start": 100,
+      "end": 700,
+      "geometry": "point",
+      "coordinates": [
+        -79,
+        -8.1
+      ],
+      "body": "페루 북부 해안에서 정교한 도기와 관개 농업으로 알려진 모체 문명이 발전."
+    },
+    {
+      "id": "500-ea-northern-southern",
+      "title": "남북조 시대",
+      "region": "동아시아",
+      "category": "",
+      "start": 500,
+      "geometry": "point",
+      "coordinates": [
+        118.78,
+        32.06
+      ],
+      "body": "중국이 남조와 북조로 분열된 시기. 불교가 크게 융성하고 강남 개발이 진전됨."
+    },
+    {
+      "id": "500-eu-byzantine",
+      "title": "동로마(비잔티움)의 존속",
+      "region": "유럽",
+      "category": "",
+      "start": 500,
+      "geometry": "point",
+      "coordinates": [
+        28.98,
+        41.01
+      ],
+      "body": "서로마 멸망(476) 후에도 콘스탄티노폴리스를 중심으로 동로마 제국이 지중해 동부를 유지. 곧 유스티니아누스의 재정복으로 이어짐."
+    },
+    {
+      "id": "1000-ea-song",
+      "title": "북송의 번영",
+      "region": "동아시아",
+      "category": "",
+      "start": 1000,
+      "geometry": "point",
+      "coordinates": [
+        114.3,
+        34.8
+      ],
+      "body": "카이펑을 수도로 한 북송에서 화약·나침반·인쇄술이 발전하고 상업 경제가 융성."
+    },
+    {
+      "id": "1000-eu-viking",
+      "title": "레이프 에릭손 빈란드 도착",
+      "region": "북미",
+      "category": "",
+      "start": 1000,
+      "geometry": "point",
+      "coordinates": [
+        -55.5,
+        51.6
+      ],
+      "body": "노르드인이 뉴펀들랜드(란세오메도스)에 도달. 콜럼버스보다 약 500년 앞선 유럽인의 아메리카 접촉."
+    },
+    {
+      "id": "1000-sa-tiwanaku",
+      "title": "티와나쿠 문명",
+      "region": "남미",
+      "category": "",
+      "start": 1000,
+      "geometry": "point",
+      "coordinates": [
+        -68.67,
+        -16.55
+      ],
+      "body": "티티카카 호 인근에서 거대 석조 건축과 광역 교역망을 갖춘 티와나쿠가 안데스를 지배."
+    },
+    {
+      "id": "1279-ea-yuan",
+      "title": "원(元)의 남송 정복 완료",
+      "region": "동아시아",
+      "category": "",
+      "start": 1279,
+      "geometry": "point",
+      "coordinates": [
+        116.4,
+        39.9
+      ],
+      "body": "쿠빌라이 칸의 원이 애산 전투로 남송을 멸하고 중국 전역을 통일. 몽골 제국 최대 판도."
+    },
+    {
+      "id": "1279-eu-crusade",
+      "title": "십자군 국가의 황혼",
+      "region": "유럽",
+      "category": "",
+      "start": 1279,
+      "geometry": "point",
+      "coordinates": [
+        35.08,
+        32.9
+      ],
+      "body": "아크레를 중심으로 한 십자군 잔존 세력이 맘루크의 압박을 받음 (1291년 함락 직전)."
+    },
+    {
+      "id": "mongol-empire-extent",
+      "title": "몽골 제국 최대 판도 (대략)",
+      "region": "동아시아",
+      "category": "정치",
+      "start": 1279,
+      "end": 1294,
+      "geometry": "area",
+      "coordinates": [
+        [
+          [
+            28,
+            50
+          ],
+          [
+            120,
+            53
+          ],
+          [
+            128,
+            45
+          ],
+          [
+            122,
+            30
+          ],
+          [
+            105,
+            25
+          ],
+          [
+            88,
+            28
+          ],
+          [
+            70,
+            35
+          ],
+          [
+            44,
+            40
+          ],
+          [
+            30,
+            47
+          ],
+          [
+            28,
+            50
+          ]
+        ]
+      ],
+      "body": "쿠빌라이 칸 시기 몽골 제국이 동유럽에서 한반도 인근까지 이어진 유라시아 최대 육상 제국을 형성. (경계는 대략적인 참고용)"
+    },
+    {
+      "id": "1492-ea-ming",
+      "title": "명(明) 홍치제 치세",
+      "region": "동아시아",
+      "category": "",
+      "start": 1492,
+      "geometry": "point",
+      "coordinates": [
+        116.4,
+        39.9
+      ],
+      "body": "정화의 원정 이후 해금 정책을 유지하던 명이 비교적 안정된 '홍치중흥'을 누림."
+    },
+    {
+      "id": "1492-eu-granada",
+      "title": "그라나다 함락 (레콩키스타 완성)",
+      "region": "유럽",
+      "category": "",
+      "start": 1492,
+      "geometry": "point",
+      "coordinates": [
+        -3.6,
+        37.18
+      ],
+      "body": "이베리아 반도의 마지막 이슬람 왕국 그라나다가 카스티야-아라곤에 항복. 같은 해 콜럼버스 후원으로 이어짐."
+    },
+    {
+      "id": "1492-sa-columbus",
+      "title": "콜럼버스 신대륙 도착",
+      "region": "남미",
+      "category": "",
+      "start": 1492,
+      "geometry": "point",
+      "coordinates": [
+        -82.3,
+        23.1
+      ],
+      "body": "콜럼버스가 카리브해 제도에 상륙하며 유럽-아메리카 간 '콜럼버스 교환'이 시작됨."
+    },
+    {
+      "id": "columbus-voyage-1",
+      "title": "콜럼버스 1차 항해 경로",
+      "region": "남미",
+      "category": "탐험",
+      "start": 1492,
+      "end": 1493,
+      "geometry": "route",
+      "waypoints": [
+        {
+          "name": "팔로스 데 라 프론테라 (출항)",
+          "lng": -6.9,
+          "lat": 37.23,
+          "date": "1492-08-03"
+        },
+        {
+          "name": "카나리아 제도",
+          "lng": -17.2,
+          "lat": 28.1,
+          "date": "1492-09-06"
+        },
+        {
+          "name": "산살바도르 (첫 상륙)",
+          "lng": -74.5,
+          "lat": 24,
+          "date": "1492-10-12"
+        },
+        {
+          "name": "히스파니올라",
+          "lng": -71,
+          "lat": 19,
+          "date": "1492-12-05"
+        }
+      ],
+      "animate": true,
+      "sceneId": "columbus",
+      "body": "스페인 팔로스에서 출항해 카나리아 제도를 거쳐 대서양을 횡단, 바하마 산살바도르에 상륙한 뒤 히스파니올라에 이름. 유럽-아메리카 직접 접촉의 시작."
+    },
+    {
+      "id": "magellan-circumnav",
+      "title": "마젤란 함대 세계 일주",
+      "region": "남미",
+      "category": "탐험",
+      "start": 1519,
+      "end": 1522,
+      "geometry": "route",
+      "waypoints": [
+        {
+          "name": "세비야 출항",
+          "lng": -6,
+          "lat": 37.4,
+          "date": "1519"
+        },
+        {
+          "name": "리우데자네이루 연안",
+          "lng": -43.2,
+          "lat": -22.9,
+          "date": "1519"
+        },
+        {
+          "name": "마젤란 해협",
+          "lng": -70,
+          "lat": -53.5,
+          "date": "1520"
+        },
+        {
+          "name": "괌",
+          "lng": 144.8,
+          "lat": 13.4,
+          "date": "1521"
+        },
+        {
+          "name": "필리핀 세부",
+          "lng": 123.9,
+          "lat": 10.3,
+          "date": "1521"
+        },
+        {
+          "name": "희망봉 우회",
+          "lng": 18.5,
+          "lat": -34.4,
+          "date": "1522"
+        },
+        {
+          "name": "세비야 귀환",
+          "lng": -6,
+          "lat": 37.4,
+          "date": "1522"
+        }
+      ],
+      "animate": true,
+      "body": "마젤란-엘카노 함대가 사상 최초로 지구를 일주. 마젤란은 도중 필리핀에서 전사했고 엘카노가 귀환을 완수."
+    },
+    {
+      "id": "1600-ea-sekigahara",
+      "title": "세키가하라 전투",
+      "region": "동아시아",
+      "category": "",
+      "start": 1600,
+      "geometry": "point",
+      "coordinates": [
+        136.46,
+        35.37
+      ],
+      "body": "도쿠가와 이에야스가 승리해 에도 막부 성립의 기반을 마련. 일본 전국시대의 사실상 종결."
+    },
+    {
+      "id": "1600-eu-eic",
+      "title": "영국 동인도회사 설립",
+      "region": "유럽",
+      "category": "",
+      "start": 1600,
+      "geometry": "point",
+      "coordinates": [
+        -0.08,
+        51.51
+      ],
+      "body": "엘리자베스 1세가 동인도회사에 특허장을 부여. 유럽 상업 자본의 아시아 진출이 본격화."
+    },
+    {
+      "id": "1600-sa-potosi",
+      "title": "포토시 은광 전성기",
+      "region": "남미",
+      "category": "",
+      "start": 1600,
+      "geometry": "point",
+      "coordinates": [
+        -65.75,
+        -19.59
+      ],
+      "body": "볼리비아 포토시의 은이 스페인 제국과 세계 경제를 떠받침. 대규모 강제 노역(미타)이 동반됨."
+    },
+    {
+      "id": "1715-ea-kangxi",
+      "title": "청 강희제 치세 말기",
+      "region": "동아시아",
+      "category": "",
+      "start": 1715,
+      "geometry": "point",
+      "coordinates": [
+        116.4,
+        39.9
+      ],
+      "body": "강희제의 오랜 치세로 청이 안정과 번영의 절정에 이름. 영토 확장과 문화 정리 사업이 활발."
+    },
+    {
+      "id": "1715-eu-utrecht",
+      "title": "루이 14세 사망과 위트레흐트 체제",
+      "region": "유럽",
+      "category": "",
+      "start": 1715,
+      "geometry": "point",
+      "coordinates": [
+        2.35,
+        48.86
+      ],
+      "body": "스페인 왕위 계승 전쟁을 마무리한 위트레흐트 조약(1713) 직후 태양왕 루이 14세가 사망. 유럽 세력 균형 체제가 자리잡음."
+    },
+    {
+      "id": "1715-sa-jesuit",
+      "title": "예수회 선교 마을(레둑시온)의 전성",
+      "region": "남미",
+      "category": "",
+      "start": 1715,
+      "geometry": "point",
+      "coordinates": [
+        -55.86,
+        -27.32
+      ],
+      "body": "파라과이 일대 과라니족 예수회 선교 공동체가 자치적으로 번성. 후일 스페인·포르투갈의 압박으로 쇠퇴."
+    },
+    {
+      "id": "1815-ea-qing",
+      "title": "청(淸)의 가경제 후기",
+      "region": "동아시아",
+      "category": "",
+      "start": 1815,
+      "geometry": "point",
+      "coordinates": [
+        116.4,
+        39.9
+      ],
+      "body": "백련교의 난 이후 청의 국력이 서서히 약화. 곧 아편 무역 문제가 불거짐."
+    },
+    {
+      "id": "1815-eu-waterloo",
+      "title": "워털루 전투와 빈 회의",
+      "region": "유럽",
+      "category": "",
+      "start": 1815,
+      "geometry": "point",
+      "coordinates": [
+        4.41,
+        50.68
+      ],
+      "body": "나폴레옹의 최종 패배와 빈 회의 체제 성립. 유럽 협조 체제(Concert of Europe)가 시작됨."
+    },
+    {
+      "id": "1815-sa-independence",
+      "title": "남미 독립 전쟁",
+      "region": "남미",
+      "category": "",
+      "start": 1815,
+      "end": 1825,
+      "geometry": "point",
+      "coordinates": [
+        -68.15,
+        -16.5
+      ],
+      "body": "볼리바르와 산마르틴이 이끄는 독립 운동으로 스페인령 아메리카가 잇따라 공화국으로 독립."
+    },
+    {
+      "id": "1900-ea-boxer",
+      "title": "의화단 운동",
+      "region": "동아시아",
+      "category": "",
+      "start": 1900,
+      "geometry": "point",
+      "coordinates": [
+        116.4,
+        39.9
+      ],
+      "body": "반외세 의화단 봉기에 8개국 연합군이 베이징에 진주. 청의 반식민지화가 가속됨."
+    },
+    {
+      "id": "1900-eu-paris-expo",
+      "title": "파리 만국박람회",
+      "region": "유럽",
+      "category": "",
+      "start": 1900,
+      "geometry": "point",
+      "coordinates": [
+        2.29,
+        48.86
+      ],
+      "body": "벨 에포크 절정기 파리에서 만국박람회 개최. 전기·자동차 등 근대 기술이 전시되며 제국주의 유럽의 자신감을 과시."
+    },
+    {
+      "id": "1900-na-us-power",
+      "title": "미국, 신흥 강대국으로 부상",
+      "region": "북미",
+      "category": "",
+      "start": 1900,
+      "geometry": "point",
+      "coordinates": [
+        -77.04,
+        38.9
+      ],
+      "body": "미국-스페인 전쟁(1898) 승리로 필리핀·푸에르토리코 등을 얻으며 미국이 태평양으로 진출."
+    },
+    {
+      "id": "1914-ea-japan",
+      "title": "일본의 칭다오 점령",
+      "region": "동아시아",
+      "category": "",
+      "start": 1914,
+      "geometry": "point",
+      "coordinates": [
+        120.38,
+        36.07
+      ],
+      "body": "일본이 연합국으로 참전해 독일의 산둥 조차지를 점령. 이후 21개조 요구로 이어짐."
+    },
+    {
+      "id": "1914-eu-ww1",
+      "title": "제1차 세계대전 발발",
+      "region": "유럽",
+      "category": "",
+      "start": 1914,
+      "end": 1918,
+      "geometry": "point",
+      "coordinates": [
+        18.41,
+        43.86
+      ],
+      "body": "사라예보 사건을 도화선으로 유럽 열강이 총력전에 돌입. 4개 제국이 붕괴하는 결과로 이어짐."
+    },
+    {
+      "id": "1914-sa-panama",
+      "title": "파나마 운하 개통",
+      "region": "북미",
+      "category": "",
+      "start": 1914,
+      "geometry": "point",
+      "coordinates": [
+        -79.68,
+        9.08
+      ],
+      "body": "대서양과 태평양을 잇는 파나마 운하가 개통되어 세계 해운과 미국의 영향력이 크게 확대됨."
+    },
+    {
+      "id": "1945-ea-japan-surrender",
+      "title": "일본 항복과 광복",
+      "region": "동아시아",
+      "category": "",
+      "start": 1945,
+      "geometry": "point",
+      "coordinates": [
+        139.69,
+        35.68
+      ],
+      "body": "히로시마·나가사키 원폭 투하 후 일본이 항복. 한국이 식민 지배에서 해방됨."
+    },
+    {
+      "id": "1945-eu-ww2end",
+      "title": "제2차 세계대전 종전 (유럽 전선)",
+      "region": "유럽",
+      "category": "",
+      "start": 1945,
+      "geometry": "point",
+      "coordinates": [
+        13.4,
+        52.52
+      ],
+      "body": "베를린 함락과 독일 항복으로 유럽 전쟁이 끝남. 곧 냉전 구도가 형성됨."
+    },
+    {
+      "id": "1945-na-un",
+      "title": "국제연합(UN) 창설",
+      "region": "북미",
+      "category": "",
+      "start": 1945,
+      "geometry": "point",
+      "coordinates": [
+        -122.42,
+        37.77
+      ],
+      "body": "샌프란시스코 회의에서 UN 헌장이 채택되어 전후 국제 질서의 틀이 마련됨."
+    },
+    {
+      "id": "2010-af-arabspring",
+      "title": "아랍의 봄",
+      "region": "아프리카",
+      "category": "",
+      "start": 2010,
+      "end": 2012,
+      "geometry": "point",
+      "coordinates": [
+        9.56,
+        33.89
+      ],
+      "body": "튀니지에서 시작된 민주화 시위가 북아프리카와 서아시아로 확산되며 여러 정권이 교체됨."
+    },
+    {
+      "id": "2010-ea-china-economy",
+      "title": "중국, 세계 2위 경제 대국 부상",
+      "region": "동아시아",
+      "category": "",
+      "start": 2010,
+      "geometry": "point",
+      "coordinates": [
+        121.47,
+        31.23
+      ],
+      "body": "중국의 GDP가 일본을 추월해 미국에 이은 세계 2위가 됨. 동아시아 경제 질서의 전환점."
+    },
+    {
+      "id": "2010-sa-brazil",
+      "title": "브라질 신흥 경제(BRICs)의 부상",
+      "region": "남미",
+      "category": "",
+      "start": 2010,
+      "geometry": "point",
+      "coordinates": [
+        -47.88,
+        -15.79
+      ],
+      "body": "원자재 호황을 바탕으로 브라질이 빠르게 성장하며 2014 월드컵·2016 올림픽 개최국으로 선정됨."
+    }
+  ],
+  "scenes": [
+    {
+      "id": "gallic-wars",
+      "title": "카이사르의 갈리아 원정 (BC 58~50)",
+      "start": -58,
+      "end": -50,
+      "step": 1,
+      "borderYear": -323,
+      "bounds": [
+        [
+          43,
+          -3
+        ],
+        [
+          51,
+          9
+        ]
+      ],
+      "body": "갈리아 전역의 주요 전투를 연 단위로 추적. 경계는 가장 가까운 시대 지도(기원전 323년)를 참고용으로 표시."
+    },
+    {
+      "id": "discovery-age",
+      "title": "탐험의 시대 (1490~1525)",
+      "start": 1490,
+      "end": 1525,
+      "step": 1,
+      "borderYear": 1492,
+      "bounds": [
+        [
+          -60,
+          -120
+        ],
+        [
+          60,
+          150
+        ]
+      ],
+      "body": "콜럼버스·마젤란 등 대항해 탐험 경로를 한 화면에서 연 단위로 비교."
+    },
+    {
+      "id": "columbus",
+      "title": "대항해시대 — 콜럼버스 1차 항해",
+      "start": 1492,
+      "end": 1493,
+      "step": 1,
+      "borderYear": 1492,
+      "bounds": [
+        [
+          10,
+          -85
+        ],
+        [
+          42,
+          0
+        ]
+      ],
+      "body": "스페인에서 카리브해까지의 횡단 경로를 연 단위로 추적."
+    }
+  ],
+  "eras": [
+    {
+      "id": "bc2000",
+      "year": -2000,
+      "borderFile": "world_bc2000.geojson",
+      "label": "기원전 2000년",
+      "body": "이 시대에 표시되는 주요 정치체: Afanasevo, Ainu, Anatolian tribes, Andronovo, Archaic Amerindian hunter-gatherers, Arctic marine mammal hunters, Australian aboriginal hunter-gatherers, Austroasian rice cultures, Austronesians, Bantu, Beaker, Canaan, Catacomb culture, Chinchorro culture, city-states, Cycladic, Dakapeng culture, Dravidians, Egypt, Elam, Finno-Ugric taiga hunter-gatherers, Hittites, Hunters-gatherers, Hurrian Kingdoms, Indus valley civilization, Jōmon, Kerma, Khoisan, Koreans, Mesoamerican hunter-gatherers and maïze farmers 등."
+    },
+    {
+      "id": "bc323",
+      "year": -323,
+      "borderFile": "world_bc323.geojson",
+      "label": "기원전 323년 (알렉산드로스 사후)",
+      "body": "이 시대에 표시되는 주요 정치체: Adena Culture, Ainu, Amazon hunter-gatherers, Andean hunter-gatherers, Arctic marine mammal hunters, Armenia, Atropatene, Australian aboriginal hunter-gatherers, Bell-shaped burials culture, Blemmyes, Bosporan Kingdom, Brushed Pottery culture, Cappadocia, Caribbean hunter-gatherers, Carthaginian Empire, Celts, Chavin, Chorrera, Colchis, Curonians, Desert hunter-gatherers, Eastern Masurian culture, Eastern North Amercian hunter-gatherers, Empire of Alexander, Ethiopian highland farmers, Finno-Ugric taiga hunter-gatherers, Glades Culture, Greek city-states, Guanches, Hadramaut 등."
+    },
+    {
+      "id": "y100",
+      "year": 100,
+      "borderFile": "world_100.geojson",
+      "label": "서기 100년 (로마 전성기)",
+      "body": "이 시대에 표시되는 주요 정치체: Ainu, Alans, Amazon hunter-gatherers, Andean hunter-gatherers, Arakan, Arctic marine mammal hunters, Armenia, Australian aboriginal hunter-gatherers, Axum, Bell-shaped burials culture, Blemmyes, Boihaenum, Bosporian Kingdom, Brushed Pottery culture, Caribbean hunter-gatherers, Copena, Couture Complex, Curonians, Dacia, Desert hunter-gatherers, Dumonii, Eastern Masurian culture, Finno-Ugric taiga hunter-gatherers, Fourche Maline Culture, Gaya, Glades Culture, Goodall Focus, Guanches, Hadramaut, Hainan 등."
+    },
+    {
+      "id": "y500",
+      "year": 500,
+      "borderFile": "world_500.geojson",
+      "label": "500년",
+      "body": "이 시대에 표시되는 주요 정치체: Ainu, Amazon hunter-gatherers, Andean hunter-gatherers, Anglo-Saxons, Arctic marine mammal hunters, Armorica, Australian aboriginal hunter-gatherers, Axum, Basks, Blemmyes, Burgunds, Caloosahatchee cultureure, Caribbean hunter-gatherers, Champa, Cheras, Cholas, Copena, Couture Complex, Desert hunter-gatherers, Dorset, Eastern North Amercian hunter-gatherers, Eastern Roman Empire, Empire of Ghana, Finno-Ugric taiga hunter-gatherers, Fourche Maline Culture, Franks, Funan, Goodall Focus, Gupta Empire, Himyarite Kingdom 등."
+    },
+    {
+      "id": "y1000",
+      "year": 1000,
+      "borderFile": "world_1000.geojson",
+      "label": "1000년",
+      "body": "이 시대에 표시되는 주요 정치체: Ainu, Alans, Alwa, Amazon hunter-gatherers, Andean hunter-gatherers, Annam, Aragón, Arawaks, Arctic marine mammal hunters, Armenia, Arran, Athabaskan, Australian aboriginal hunter-gatherers, Baltic Tribes, Bantou, Boethuk, Britany, Bulgar Khanate, Burgandy, Buwayhid Emirates, Buyid Emirate, Byzantine Empire, Caliphate of Córdoba, Caloosahatchee cultureure, Caribbean hunter-gatherers, Castilla, Celtic kingdoms, Chalukya Empire, Champa, Chauhans 등."
+    },
+    {
+      "id": "y1279",
+      "year": 1279,
+      "borderFile": "world_1279.geojson",
+      "label": "1279년 (몽골 제국)",
+      "body": "이 시대에 표시되는 주요 정치체: Abdelouadides, Aceh, Ainus, Alwa, Amazon hunter-gatherers, Andean hunter-gatherers, Andean states and chiefdoms, Aragón, Arawaks, Athabaskan, Australian aboriginal hunter-gatherers, Aymara kingdoms, Bantou, Benin, Beothuk, Bornu-Kanem, Britany, Bulgar Khanate, Byzantine Empire, Caloosahatchee cultureure, Caribbean hunter-gatherers, Castile, Chagatai Khanate, Champa, Chimú Empire, Chola state, Corsica, Cyprus, Đại Việt, Denmark 등."
+    },
+    {
+      "id": "y1492",
+      "year": 1492,
+      "borderFile": "world_1492.geojson",
+      "label": "1492년 (대항해시대)",
+      "body": "이 시대에 표시되는 주요 정치체: 'Amuwu, [Gáuigú (Kiowa), Á,LEṈENEȻ ȽTE (W̱SÁNEĆ), A'i Cofán/Kofán, A'uwe, Abenaki / Abénaquis, Abipones, Abitibiwinni Aki, Accomack, Aceh, Achagua, Aché, Achí, Achires, Acho Dene Koe, Achuar, Achumawi, Acjachemen (Juaneño), Adal, Adena, Ahantchuyuk, Ahé (Kawahib), Ahmadnagar, Ahtna Nenn’, Aikanã, Ainus, Ais, Akaitcho, Akan, Akawaio/Akawayo 등."
+    },
+    {
+      "id": "y1600",
+      "year": 1600,
+      "borderFile": "world_1600.geojson",
+      "label": "1600년",
+      "body": "이 시대에 표시되는 주요 정치체: Aaniiih, Abnaki, Acaxea, Aceh, Adal, Agwarmin, Ahmadnagar, Ainu, Akan, Alabama, Alawa, Alyawarre, Amangu, Amarak, Amazon hunter-gatherers, Andean hunter-gatherers, Andegerebenha, Andyamathanha, Anggamudi, Anguthimri, Anmatyerre, Antakarinja, Apache, Apalachee, Arabana, Arapaho, Arikara, Arrernte, Assiniboin, Atakapa 등."
+    },
+    {
+      "id": "y1715",
+      "year": 1715,
+      "borderFile": "world_1715.geojson",
+      "label": "1715년",
+      "body": "이 시대에 표시되는 주요 정치체: Agwarmin, Air, Alabama, Alawa, Algiers, Alyawarre, Amangu, Amarak, Amazon hunter-gatherers, Andean hunter-gatherers, Andegerebenha, Andyamathanha, Anggamudi, Anguilla, Anguthimri, Anmatyerre, Antakarinja, Antigua and Barbuda, Arabana, Arakan (Indian princely state), Arapaho, Arikara, Arma, Arrernte, Asante, Assiniboin, Atakapa, Athabascan, Australian aboriginal hunter-gatherers, Austrian Empire 등."
+    },
+    {
+      "id": "y1815",
+      "year": 1815,
+      "borderFile": "world_1815.geojson",
+      "label": "1815년 (빈 회의)",
+      "body": "이 시대에 표시되는 주요 정치체:        , Afghanistan, Alawa, Algiers, Alyawarre, Amangu, Amarak, Angola, Anguilla, Anhalt, Anmatyerre, Annam, Antakarinja, Antigua and Barbuda, Arakan, Arrernte, Asante, Assam, Australian aboriginal hunter-gatherers, Austrian Empire, Baden, Badimaya, Ballardong, Banjima, Barbados, Bardi, Bavaria, Bhutan, Bibbulman, Bilinara 등."
+    },
+    {
+      "id": "y1900",
+      "year": 1900,
+      "borderFile": "world_1900.geojson",
+      "label": "1900년 (제국주의)",
+      "body": "이 시대에 표시되는 주요 정치체: Accra, Afghanistan, Algeria, American Samoa, Angola, Anguilla, Antigua and Barbuda, Arabia, Argentina, Asante, Ato trading confederacy, Austria Hungary, Barotse, Basutoland, Belgium, Belize, Benin, Bhutan, Bolivia, Borgu States, Bosnia-Herzegovina, British Guiana, British Raj, Brunei, Buganda, Bulgaria, Bunyoro, Burundi, Calabar, Canada 등."
+    },
+    {
+      "id": "y1914",
+      "year": 1914,
+      "borderFile": "world_1914.geojson",
+      "label": "1914년 (1차 대전)",
+      "body": "이 시대에 표시되는 주요 정치체: Abyssinia, Afghanistan, Albania, Algeria, American Samoa, Anglo-Egyption Sudan, Angola, Anguilla, Antigua and Barbuda, Arabia (Nejd), Argentina, Armenia, Australia, Austro-Hungarian Empire, Azerbaijan, Barbados, Belgian Congo, Belgium, Belize, Bhutan, Bolivia, Botswana, Brazil, British East Africa, British Protectorate, British Raj, British Somaliland, Brunei, Bulgaria, Canada 등."
+    },
+    {
+      "id": "y1945",
+      "year": 1945,
+      "borderFile": "world_1945.geojson",
+      "label": "1945년 (2차 대전 종전)",
+      "body": "이 시대에 표시되는 주요 정치체: Afghanistan, Albania, Algeria, American Samoa, Andorra, Angola (Portugal), Anguilla, Annam, Antarctica, Antigua and Barbuda, Argentina, Australia, Austria, Bahamas, Bangladesh, Barbados, Belgium, Belize, Benin, Bhutan, Bolivia, Botswana, Brazil, British Somaliland, Brunei, Bulgaria, Burkina Faso, Burma, Burundi, Cambodia 등."
+    },
+    {
+      "id": "y2010",
+      "year": 2010,
+      "borderFile": "world_2010.geojson",
+      "label": "2010년 (현대)",
+      "body": "이 시대에 표시되는 주요 정치체: Afghanistan, Albania, Algeria, American Samoa, Andorra, Angola, Anguilla, Antigua and Barbuda, Argentina, Armenia, Australia, Austria, Azerbaijan, Bahamas, Bangladesh, Barbados, Belgium, Belize, Benin, Bhutan, Bolivia, Bosnia and Herzegovina, Botswana, Brazil, Brunei, Bulgaria, Burkina Faso, Burma, Burundi, Byelarus 등."
+    }
+  ]
+}
