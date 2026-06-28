@@ -5,7 +5,7 @@ category: 전쟁
 start: -58
 end: -50
 geometry: route
-sceneId: gallic-wars
+sceneId: bc58-gallic-wars
 waypoints: [{"name":"제네바 — 헬베티족 저지","lng":6.14,"lat":46.2,"date":"BC 58"},{"name":"비브락테 전투 (헬베티족 격파)","lng":4.03,"lat":46.92,"date":"BC 58"},{"name":"보주 전투 — 아리오비스투스 격퇴","lng":6.02,"lat":47.24,"date":"BC 58"},{"name":"사비스 전투 — 벨가이·네르비족","lng":3.55,"lat":50.28,"date":"BC 57"},{"name":"베네티 해전 — 브르타뉴 해안","lng":-2.75,"lat":47.5,"date":"BC 56"},{"name":"라인강 도하 — 게르마니아 시위","lng":7.4,"lat":50.44,"date":"BC 55"},{"name":"제1차 브리타니아 원정 — 켄트 상륙","lng":1.4,"lat":51.18,"date":"BC 55"},{"name":"아투아투카 참사 — 암비오릭스의 반란","lng":5.46,"lat":50.78,"date":"BC 54"},{"name":"게르고비아 공방 — 카이사르의 패배","lng":3.12,"lat":45.72,"date":"BC 52"},{"name":"알레시아 포위전 — 결정적 승리","lng":4.5,"lat":47.54,"date":"BC 52"},{"name":"욱셀로두눔 함락 — 갈리아 평정","lng":1.7,"lat":44.97,"date":"BC 51"}]
 ---
 

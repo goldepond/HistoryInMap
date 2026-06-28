@@ -174,6 +174,8 @@ function drawEvent(ev) {
     m.bindPopup(popupHtml(ev), { maxWidth: 340 }); m.eventId = ev.id; eventLayer.addLayer(m);
   } else if (ev.geom.type === "route") {
     if (state.mode === "scene" && ev.sceneId === state.scene?.id) { drawRouteProgress(ev); return; } // 장면: 시간순 진행
+    if (state.mode === "global") { drawRoutePin(ev); return; } // 전역: 대표 핀 1개로 접기(첫 waypoint)
+    // 장면 안의 '다른' 경로(또는 장면 미지정): 전체 경로 표시
     const line = L.polyline(ev.geom.latlngs, { pane: "eventPane", color, weight: 3, opacity: 0.9, dashArray: "6,5" });
     line.bindPopup(popupHtml(ev), { maxWidth: 340 }); line.eventId = ev.id; eventLayer.addLayer(line);
     ev.geom.latlngs.forEach((ll, i) => {
@@ -208,7 +210,7 @@ function renderPanel(byRegion, total) {
       const item = document.createElement("div"); item.className = "event-item";
       const period = ev.end != null ? `${yearShort(ev.start)}~${yearShort(ev.end)}` : yearShort(ev.start);
       item.innerHTML = `<div class="ev-main"><div class="event-title">${escapeHtml(ev.title)}<span class="geo-tag">${GEO_LABEL[ev.geom.type]}</span></div><div class="event-meta">${period} · ${escapeHtml(ev.region)}</div></div>`;
-      item.addEventListener("click", () => focusEvent(ev.id));
+      item.addEventListener("click", () => { if (!sceneFromEvent(ev)) focusEvent(ev.id); });
       group.appendChild(item);
     }
     list.appendChild(group);
@@ -219,6 +221,23 @@ function focusEvent(id) {
   if (!t) return;
   if (t.getBounds) map.fitBounds(t.getBounds().pad(0.4), { maxZoom: 6 }); else map.panTo(t.getLatLng());
   t.openPopup();
+}
+// 전역에서 경로를 첫 waypoint 위치에 '대표 핀' 하나로 접어 표시(흰 테두리로 구분)
+function drawRoutePin(ev) {
+  const color = REGION_COLORS[ev.region] || DEFAULT_REGION_COLOR;
+  const ll = ev.geom.latlngs[0]; if (!ll) return;
+  const scene = ev.sceneId ? state.scenes.find((s) => s.id === ev.sceneId) : null;
+  const m = L.circleMarker(ll, { pane: "eventPane", radius: 7, color: "#fff", weight: 2, fillColor: color, fillOpacity: 0.95 });
+  m.bindTooltip(`${escapeHtml(ev.title)}${scene ? " · 클릭하면 장면으로" : ""}`, { direction: "top" });
+  if (scene) m.on("click", () => sceneFromEvent(ev));
+  else m.bindPopup(popupHtml(ev), { maxWidth: 340 });
+  m.eventId = ev.id; eventLayer.addLayer(m);
+}
+// 경로가 장면에 묶여 있으면 그 장면으로 진입(전역에서만). 처리했으면 true.
+function sceneFromEvent(ev) {
+  if (state.mode !== "global" || ev.geom.type !== "route" || !ev.sceneId) return false;
+  const sc = state.scenes.find((s) => s.id === ev.sceneId); if (!sc) return false;
+  $("#scene-select").value = sc.id; enterScene(sc); return true;
 }
 
 // ─── 장면 내 경로의 '시간순 진행' (타임라인 연동 · 버튼 없음 · 비애니메이션)

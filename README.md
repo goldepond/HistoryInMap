@@ -10,7 +10,7 @@
 
 - **2단계 타임라인** — 전 세계 10년 단위 / **장면(Scene)** 진입 시 지역 포커스 + 연 단위
 - **정확한 지형** — Natural Earth 물리 지도(해안선·강·호수), 줌인 시 50m 자동 전환
-- **사건 3종 + 애니메이션** — 지점·경로(▶ 재생)·영역, 클릭 시 마크다운 상세
+- **사건 3종** — 지점·경로·영역, 클릭 시 마크다운 상세. 장면 안에서 경로는 타임라인을 따라 시간순으로 진행
 - **지역 병렬 비교 패널** — 같은 시대의 여러 지역을 동시에
 - **순수 정적 · 빠름** — 런타임 서버/네트워크 호출 없음. 캔버스 렌더링 + 빌드 시 경계 경량화로 가볍게 동작
 
@@ -18,17 +18,60 @@
 
 각 엔티티가 **파일 하나**입니다. 상단 `--- … ---` 는 메타데이터, 그 아래는 마크다운 본문입니다.
 
+**폴더는 자유, 타입은 파일 내용으로 판별합니다.** `content/` 아래 `.md`는 **어디에 두든**(루트·하위 폴더) 빌드가 재귀적으로 읽고,
+프론트매터로 종류를 정합니다: `borderFile` 있으면 **시대**, `bounds` 있으면 **장면**, 그 외는 **사건**. (원하면 `kind: event|scene|era`로 명시)
+
+→ 그래서 **사건(topic) 단위로 정리**합니다. 단편 사건은 파일 하나, 큰 사건은 장면+경로를 **한 폴더**에:
+
 ```
 content/
-  events/<id>.md     # 사건 (지점/경로/영역)
-  scenes/<id>.md     # 지역 포커스 장면
-  eras/<id>.md       # 시대(타임라인 눈금) = 연도 + 국경파일 + 라벨
-  manifest.json      # ★ 빌드 산출물 (위 .md들을 모은 색인 — 직접 편집 금지)
+  events/                       # 모든 사건 (단편이든 큰 사건이든)
+    1492-granada.md             #   단편 사건 = 파일 하나
+    bc323-alexander.md
+    ... (단편 사건들)
+    bc58-gallic-wars/           #   큰 사건 = 폴더 (장면 + 경로 같이)
+      bc58-gallic-wars.md         (장면)
+      bc58-gallic-wars-route.md   (경로)
+    1492-columbus/
+      1492-columbus.md            (장면)
+      1492-columbus-route.md      (경로)
+  eras/                         # 타임라인 눈금(인프라) — 14개
+    y1492.md ...
+  manifest.json                 # ★ 빌드 산출물 (자동 생성 — 직접 편집 금지)
 ```
+
+> **네이밍 컨벤션: `<연도>-<주제>`** (지역코드 없음). 연도는 BC `bc<n>`·AD `<n>`, 주제는 짧은 영문 kebab.
+> 예: `1492-granada` · `bc323-alexander` · `2010-arabspring`. 큰 사건도 동일 — 폴더 `bc58-gallic-wars/`, 그 안 장면 `bc58-gallic-wars.md` + 경로 `bc58-gallic-wars-route.md`.
+> (강제 규칙은 **"파일명=id, content/ 전체에서 유일 + 안전한 문자(영문·숫자·한글·`-`·`_`)"** 뿐. 파일명은 데이터로 안 읽히니 컨벤션은 정리·정렬용입니다.)
+
+> **id = 파일명**(폴더 무관). `sceneId`는 그 파일명을 가리킵니다. 폴더 이름·위치는 **사람이 정리하는 용도**일 뿐 시스템 동작에 영향 없음 — 언제든 자유롭게 옮겨도 됩니다.
+
+### 구조: '포함'이 아니라 '참조'
+
+같은 폴더에 있어도 장면이 사건을 **소유**하는 건 아닙니다. 연결은 **참조**입니다.
+
+```
+사건(event) = point | route | area 중 "하나"
+              └ route(경로)는 내부에 waypoints(지점들)를 품음
+장면(scene)  = "지도 시점 + 타임라인 범위"만 정의
+시대(era)    = 타임라인 눈금 1개 = 연도 + 국경파일
+
+연결은 '포함'이 아니라 '참조':
+  사건 ──sceneId────▶ 장면          (선택; 여러 사건이 한 장면을 가리킬 수 있음)
+  장면 ──borderYear─▶ 국경 스냅샷
+  시대 ──borderFile─▶ 국경 파일
+
+장면을 켜면 → sceneId가 그 장면이거나, 장면 bounds 안에 있는 사건이 표시됨.
+```
+
+- ✅ `route`(경로) **안에** `waypoints`(지점들) — 맞음
+- ✅ `point`(지점) **단독 사건** — 맞음 (장면 없이도 존재)
+- ✅ 큰 사건은 장면+경로를 **한 폴더**에 두기 — 권장(정리용)
+- ❌ `scene`(장면)이 `route`·`point`를 **'소유'하지는 않음** — `sceneId`로 **참조**할 뿐
 
 좌표는 **GeoJSON 순서 `[경도(lng), 위도(lat)]`** 입니다.
 
-**사건 — 지점** (`content/events/granada.md`)
+**사건 — 지점** (`content/events/1492-granada.md`)
 ```markdown
 ---
 title: 그라나다 함락
@@ -46,7 +89,7 @@ coordinates: [-3.6, 37.18]
 같은 해 콜럼버스 후원으로 이어진다.
 ```
 
-**사건 — 경로** (`waypoints` = 순서 있는 경유지, `animate: true` 면 ▶ 재생)
+**사건 — 경로** (`waypoints` = 순서 있는 경유지. 장면 안에서 타임라인을 움직이면 경유지 `date`에 맞춰 시간순으로 진행)
 ```markdown
 ---
 title: 콜럼버스 1차 항해
@@ -54,8 +97,7 @@ region: 남미
 geometry: route
 start: 1492
 end: 1493
-animate: true
-sceneId: columbus
+sceneId: 1492-columbus
 waypoints: [{"name":"팔로스 출항","lng":-6.9,"lat":37.23,"date":"1492-08-03"},{"name":"산살바도르","lng":-74.5,"lat":24.0,"date":"1492-10-12"}]
 ---
 본문 마크다운…
@@ -73,7 +115,7 @@ label: 1492년 (대항해시대)
 이 시대에 대한 설명(선택).
 ```
 
-**장면(scene)** (`content/scenes/columbus.md`) — 지역 포커스
+**장면(scene)** (`content/events/1492-columbus/1492-columbus.md`) — 지역 포커스
 ```markdown
 ---
 title: 대항해시대 — 콜럼버스 1차 항해
@@ -101,7 +143,7 @@ bounds: [[10, -85], [42, 0]]
 → 이 둘은 `npm run build`(또는 CI)가 만듭니다. **편집은 항상 아래 "원천 파일"에서.**
 
 ### ✏️ 수정하는 원천 파일
-- `content/events|scenes|eras/*.md` — **여기서 자유롭게 추가·수정·삭제**
+- `content/**/*.md` — **여기서 자유롭게 추가·수정·삭제** (폴더 구조 자유, 타입은 내용으로 판별)
 - `data/borders-src/*.geojson` — **새 시대 국경을 추가할 때만**
 
 ### 공통 규칙 (자주 실수하는 것)
@@ -112,7 +154,7 @@ bounds: [[10, -85], [42, 0]]
 
 ---
 
-### 🟦 사건 — `content/events/<id>.md`
+### 🟦 사건 — `content/…/<id>.md` (어디에 둬도 됨)
 | 필드 | 필수 | 의미 / 허용값 | 수정 |
 | --- | :---: | --- | --- |
 | `title` | ✅ | 제목(마커·패널·팝업) | 자유 |
@@ -122,7 +164,7 @@ bounds: [[10, -85], [42, 0]]
 | `end` | ⬜ | 종료 연도. 비우면(또는 생략) **단일 시점** | 자유(숫자/빈값) |
 | `geometry` | ✅ | `point` / `route` / `area` 중 하나 | **형식 지킬 것** |
 | `coordinates` 또는 `waypoints` | ✅ | 도형 데이터(아래) | **형식 지킬 것** |
-| `sceneId` | ⬜ | 특정 장면에 묶기. **장면 `id`와 정확히 일치**해야 함(현재: `gallic-wars`·`columbus`·`discovery-age`) | 일치 필요 |
+| `sceneId` | ⬜ | 특정 장면에 묶기. **장면 `id`와 정확히 일치**해야 함(현재: `bc58-gallic-wars`·`1492-columbus`·`1490-discovery-age`) | 일치 필요 |
 | (본문) | ⬜ | `---` 아래 **마크다운 설명** (길게 써도 됨) | 자유 |
 
 **geometry별 좌표 형식**
@@ -143,7 +185,7 @@ coordinates: [[ [경도,위도], [경도,위도], ..., [첫경도,첫위도] ]]
 - `waypoints[].date` 는 **경로의 시간 진행**을 결정합니다(장면에서 타임라인이 그 연도에 닿으면 거기까지 진행). 인식 형식: `"BC 58"`, `"기원전 58"`, `"AD 100"`, `"1492-08-03"`, `"1492"`.
 - `animate` 필드는 **더 이상 쓰이지 않습니다**(있어도 무시).
 
-### 🎬 장면 — `content/scenes/<id>.md`
+### 🎬 장면 — `content/events/<큰사건>/<id>.md` (경로와 같은 폴더 권장)
 | 필드 | 필수 | 의미 / 허용값 | 수정 |
 | --- | :---: | --- | --- |
 | `title` | ✅ | 드롭다운 라벨 + 캡션 | 자유 |
@@ -221,8 +263,9 @@ npm start            # http://localhost:8080  (또는: npx serve .)
 HistoryProject/
 ├─ index.html · css/style.css · js/app.js   # 정적 사이트(읽기 전용)
 ├─ content/                # ★ 콘텐츠 원천 (.md) — git 관리
-│  ├─ events/ scenes/ eras/
-│  └─ manifest.json        # 빌드 산출물(.gitignore)
+│  ├─ events/              #   모든 사건 (단편 .md + 큰사건 폴더[장면+경로])
+│  ├─ eras/                #   타임라인 눈금(인프라)
+│  └─ manifest.json        #   빌드 산출물(.gitignore)
 ├─ data/
 │  ├─ basemap/             # Natural Earth 지형 (110m/50m)
 │  ├─ borders-src/         # 국경 원본 GeoJSON + index.json  (git 관리)
