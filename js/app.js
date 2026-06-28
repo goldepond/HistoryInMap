@@ -19,8 +19,9 @@ const state = {
   mode: "global", scene: null, year: 1490, globalYear: 1490,
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
-  baseLevel: null, playTimer: null,
+  baseLevel: null, playTimer: null, speed: 1,
 };
+const SPEEDS = [0.5, 1, 2, 4];
 
 const $ = (s) => document.querySelector(s);
 const slider = $("#year-slider");
@@ -90,20 +91,22 @@ async function ensureBase(level) {
   const [land, lakes, rivers] = await Promise.all(p.map(loadBase));
   const opt = { pane: "basePane", interactive: false, renderer: baseRenderer, smoothFactor: 2 };
   baseLayer.clearLayers();
-  baseLayer.addLayer(L.geoJSON(land, { ...opt, style: { color: "#2c3e5e", weight: 0.6, fillColor: "#20304a", fillOpacity: 1 } }));
-  baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: "#16263e", weight: 0.4, fillColor: "#0c1a2e", fillOpacity: 1 } }));
-  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#3a5274", weight: 0.7 } }));
+  // 땅: 밝은 슬레이트 + 또렷한 해안선(바다와 명확히 구분)
+  baseLayer.addLayer(L.geoJSON(land, { ...opt, style: { color: "#62788a", weight: 0.9, fillColor: "#313b49", fillOpacity: 1 } }));
+  // 호수: 바다와 같은 짙은 남색
+  baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: "#1c3346", weight: 0.5, fillColor: "#0a1826", fillOpacity: 1 } }));
+  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#3f6486", weight: 0.7 } }));
 }
 map.on("zoomend", () => ensureBase(map.getZoom() >= 5 ? "50m" : "110m"));
 
 // ─── 국경
 function nearestBorder(year) { return state.years.reduce((b, y) => Math.abs(y.year - year) < Math.abs(b.year - year) ? y : b, state.years[0]); }
 function precisionOf(p) { const n = parseInt(p.BORDERPRECISION, 10); return Number.isFinite(n) ? n : 2; }
-function colorForSubject(s) { s = (s || "").trim(); if (!s) return "#3a4566"; let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return `hsl(${h}, 52%, 56%)`; }
+function colorForSubject(s) { s = (s || "").trim(); if (!s) return "#46536b"; let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return `hsl(${h}, 58%, 58%)`; }
 function borderStyle(f) {
   const p = f.properties || {}, prec = precisionOf(p);
-  return { color: "#0b1020", weight: prec >= 3 ? 1 : prec === 2 ? 0.8 : 0.6, dashArray: prec >= 3 ? null : prec === 2 ? "3,3" : "1,4",
-    fillColor: colorForSubject(p.SUBJECTO || p.NAME), fillOpacity: prec >= 3 ? 0.42 : prec === 2 ? 0.32 : 0.18 };
+  return { color: "#0a1018", weight: prec >= 3 ? 1 : prec === 2 ? 0.8 : 0.6, dashArray: prec >= 3 ? null : prec === 2 ? "3,3" : "1,4",
+    fillColor: colorForSubject(p.SUBJECTO || p.NAME), fillOpacity: prec >= 3 ? 0.5 : prec === 2 ? 0.4 : 0.24 };
 }
 async function loadBorderFile(fn) { if (state.borderCache.has(fn)) return state.borderCache.get(fn); const g = await fetchJSON(BORDERS_DIR + fn); state.borderCache.set(fn, g); return g; }
 
@@ -319,6 +322,7 @@ function exitScene() {
 function bindUI() {
   slider.addEventListener("input", () => setYear(parseInt(slider.value, 10), { fromSlider: true }));
   $("#play-btn").addEventListener("click", togglePlay);
+  $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
   $("#info-toggle").addEventListener("click", () => ($("#info-modal").hidden = false));
   $("#info-close").addEventListener("click", () => ($("#info-modal").hidden = true));
@@ -330,11 +334,24 @@ function bindUI() {
     if (e.key === "Escape") $("#info-modal").hidden = true;
   });
 }
+const baseDelay = () => (state.mode === "scene" ? 900 : 1600);
+function startPlayTimer() {
+  clearInterval(state.playTimer);
+  state.playTimer = setInterval(() => {
+    const n = state.year + (+slider.step);
+    if (n > +slider.max) { togglePlay(); return; }
+    setYear(n);
+  }, baseDelay() / state.speed);
+}
 function togglePlay() {
   const btn = $("#play-btn");
   if (state.playTimer) { clearInterval(state.playTimer); state.playTimer = null; btn.textContent = "▶"; return; }
-  btn.textContent = "⏸";
-  state.playTimer = setInterval(() => { const n = state.year + (+slider.step); if (n > +slider.max) { togglePlay(); return; } setYear(n); }, state.mode === "scene" ? 900 : 1600);
+  btn.textContent = "⏸"; startPlayTimer();
+}
+function cycleSpeed() {
+  state.speed = SPEEDS[(SPEEDS.indexOf(state.speed) + 1) % SPEEDS.length];
+  $("#speed-btn").textContent = `${state.speed}×`;
+  if (state.playTimer) startPlayTimer(); // 재생 중이면 즉시 반영
 }
 
 // ─── 부트스트랩

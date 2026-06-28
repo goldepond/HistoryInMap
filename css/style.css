@@ -1,14 +1,16 @@
 :root {
-  --bg: #0f1320;
-  --panel: #171c2e;
-  --panel-2: #1f2742;
-  --line: #2b3454;
-  --text: #e8ecf6;
-  --muted: #9aa6c4;
+  /* UI: 채도 낮은 중립 차콜 (지도의 파랑과 구분) */
+  --bg: #14171d;
+  --panel: #191d25;
+  --panel-2: #242a36;
+  --line: #3a4252;
+  --text: #e9edf5;
+  --muted: #99a3b6;
   --accent: #5b9dff;
   --accent-2: #ffce6b;
-  --ocean: #0c1a2e;
-  --land: #20304a;
+  /* 지도: 바다=가장 어둡게, 땅=확실히 밝게 */
+  --ocean: #0a1826;
+  --land: #313b49;
   --eu: #6ea8fe;
   --sa: #74d99f;
   --ea: #ff9e6b;
@@ -72,16 +74,16 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
 /* Map overlays */
 .loading-badge { position: absolute; z-index: 600; top: 12px; left: 50%; transform: translateX(-50%);
-  background: rgba(20,26,44,.92); border: 1px solid var(--line); padding: 7px 14px; border-radius: 20px;
+  background: rgba(22,25,31,.92); border: 1px solid var(--line); padding: 7px 14px; border-radius: 20px;
   font-size: 12px; color: var(--accent-2); }
-.border-badge { position: absolute; z-index: 600; top: 12px; left: 12px; background: rgba(20,26,44,.9);
+.border-badge { position: absolute; z-index: 600; top: 12px; left: 12px; background: rgba(22,25,31,.9);
   border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px; font-size: 11px; color: var(--muted); }
 .border-badge strong { color: var(--accent-2); }
 .disclaimer { position: absolute; z-index: 600; bottom: 10px; left: 10px; right: 10px; margin: 0 auto; max-width: 680px;
-  background: rgba(20,26,44,.9); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
+  background: rgba(22,25,31,.9); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
   font-size: 11px; color: var(--muted); text-align: center; pointer-events: none; }
 .disclaimer strong { color: var(--accent-2); }
-.legend { position: absolute; z-index: 600; top: 12px; right: 12px; background: rgba(20,26,44,.92);
+.legend { position: absolute; z-index: 600; top: 12px; right: 12px; background: rgba(22,25,31,.92);
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 12px; }
 .legend-title { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .legend-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
@@ -105,6 +107,9 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .play-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--accent); color: #07101f;
   border: none; font-size: 14px; cursor: pointer; flex: 0 0 auto; }
 .play-btn:hover { filter: brightness(1.1); }
+.speed-btn { flex: 0 0 auto; min-width: 40px; height: 30px; border-radius: 15px; cursor: pointer;
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.speed-btn:hover { border-color: var(--accent); }
 .year-label { font-size: 20px; font-weight: 700; }
 .year-sub { font-size: 12px; color: var(--muted); margin-left: 10px; }
 .mode-badge { margin-left: auto; font-size: 11px; color: var(--muted); border: 1px solid var(--line);
