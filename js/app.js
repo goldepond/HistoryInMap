@@ -356,7 +356,7 @@ function onCoordMove(e) {
 }
 function placeCoordPin(latlng, text) {
   if (state.coordPin) state.coordPin.remove();
-  state.coordPin = L.circleMarker(latlng, { pane: "eventPane", radius: 6, color: "#fff", weight: 2, fillColor: "#ffce6b", fillOpacity: 1 })
+  state.coordPin = L.circleMarker(latlng, { pane: "eventPane", radius: 5, color: "#0b1020", weight: 1.5, fillColor: "#ffce6b", fillOpacity: 1 })
     .bindTooltip(text, { permanent: true, direction: "top", className: "border-label" })
     .addTo(map);
 }
