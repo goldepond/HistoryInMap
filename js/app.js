@@ -99,7 +99,7 @@ async function ensureBase(level) {
   baseLayer.addLayer(L.geoJSON(land, { ...opt, style: { color: "#62788a", weight: 0.9, fillColor: "#313b49", fillOpacity: 1 } }));
   // 호수: 바다와 같은 짙은 남색
   baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: "#1c3346", weight: 0.5, fillColor: "#0a1826", fillOpacity: 1 } }));
-  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#5e9ad6", weight: 1.3, opacity: 0.9 } })); // 강 선명하게
+  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#5e9ad6", weight: 1.9, opacity: 0.9 } })); // 강 선명하게
 }
 map.on("zoomend", () => ensureBase(map.getZoom() >= 4 ? "50m" : "110m"));
 
