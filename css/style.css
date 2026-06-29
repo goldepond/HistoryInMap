@@ -81,6 +81,8 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .border-badge strong { color: var(--accent-2); }
 /* 좌표 피커 (좌표 모드에서만 표시) */
 .leaflet-container.picking { cursor: crosshair; }
+/* 좌표 모드: 국경·사건 레이어가 클릭을 가로채지 않도록(팝업 대신 좌표 복사) */
+.leaflet-pane.nohit, .leaflet-pane.nohit * { pointer-events: none !important; }
 .coord-readout { position: absolute; z-index: 650; bottom: 44px; left: 12px; background: rgba(22,25,31,.95);
   border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--text);
   font-family: ui-monospace, "Cascadia Code", Consolas, monospace; line-height: 1.5; pointer-events: none; max-width: 320px; }

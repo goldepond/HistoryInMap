@@ -369,6 +369,9 @@ function toggleCoord() {
   state.picking = !state.picking;
   $("#coord-toggle").setAttribute("aria-pressed", String(state.picking));
   map.getContainer().classList.toggle("picking", state.picking);
+  // 국경·사건 pane이 클릭을 가로채지 않게(팝업 대신 좌표 복사가 항상 먹히도록)
+  map.getPane("borderPane").classList.toggle("nohit", state.picking);
+  map.getPane("eventPane").classList.toggle("nohit", state.picking);
   if (state.picking) {
     $("#coord-readout").innerHTML = '<span class="cr-hint">지도 위에서 움직이거나 클릭하세요</span>';
     $("#coord-readout").hidden = false;
