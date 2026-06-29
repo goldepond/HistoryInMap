@@ -20,7 +20,7 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
-  terrain: false, reliefLayer: null, riverOn: true, borderOn: true,
+  terrain: false, reliefLayer: null, reliefBase: null, riverOn: true, borderOn: true,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 // 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
@@ -37,7 +37,10 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-// 지형도 = NASA GIBS의 EPSG:4326 컬러 음영기복 타일(ASTER GDEM, 실제 30m DEM, 12레벨). 무료·무인증·줌해도 선명.
+// 지형도(NASA GIBS, EPSG:4326, 무료·무인증):
+//  · BASE = Blue Marble 컬러 기복 — 전 지구 빈틈없음(바다·극지 포함), 일반화. 결측을 메우는 바닥.
+//  · RELIEF = ASTER GDEM(실제 30m DEM) — 육지 상세, 줌해도 선명. 위에 얹음(결측·고위도는 BASE가 비침).
+const GIBS_BASE = "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/BlueMarble_ShadedRelief_Bathymetry/default/500m/{z}/{y}/{x}.jpeg";
 const GIBS_RELIEF = "https://gibs.earthdata.nasa.gov/wmts/epsg4326/best/ASTER_GDEM_Color_Shaded_Relief/default/31.25m/{z}/{y}/{x}.jpeg";
 // GIBS EPSG:4326 타일과 줌-해상도를 1:1 정렬: 기본 scale 256 → 320 (res0=0.5625°/px = GIBS 31.25m 매트릭스)
 const CRS_GIBS = L.extend({}, L.CRS.EPSG4326, {
@@ -490,10 +493,11 @@ function prefetchRelief() {
     const nw = map.project(b.getNorthWest(), Z), se = map.project(b.getSouthEast(), Z);
     const x0 = Math.floor(nw.x / 512), x1 = Math.floor(se.x / 512);
     const y0 = Math.floor(nw.y / 512), y1 = Math.floor(se.y / 512);
-    if ((x1 - x0 + 1) * (y1 - y0 + 1) > 80) continue; // 너무 많으면 생략(부하 방지)
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > 48) continue; // 너무 많으면 생략(부하 방지)
     for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
       if (x < 0 || y < 0) continue;
       const img = new Image();
+      img.fetchPriority = "low"; // 화면 타일과 경쟁하지 않게(저우선순위)
       img.src = GIBS_RELIEF.replace("{z}", Z).replace("{x}", x).replace("{y}", y);
     }
   }
@@ -506,16 +510,18 @@ map.on("moveend", schedulePrefetch);
 function setTerrainLayer(on) {
   state.terrain = on;
   if (on) {
-    if (!state.reliefLayer) state.reliefLayer = L.tileLayer(GIBS_RELIEF, {
-      pane: "reliefPane", tileSize: 512, minZoom: 0, maxNativeZoom: 11, noWrap: true,
-      bounds: [[-90, -180], [90, 180]], attribution: "지형 NASA GIBS · ASTER GDEM",
-      keepBuffer: 4, updateWhenZooming: false, // 주변 타일 유지 + 줌 중 깜빡임↓
-    });
-    state.reliefLayer.addTo(map);
+    const opt = { pane: "reliefPane", tileSize: 512, minZoom: 0, noWrap: true,
+      bounds: [[-90, -180], [90, 180]], keepBuffer: 4, updateWhenZooming: false };
+    if (!state.reliefBase) state.reliefBase = L.tileLayer(GIBS_BASE, { ...opt, maxNativeZoom: 8 });
+    if (!state.reliefLayer) state.reliefLayer = L.tileLayer(GIBS_RELIEF, { ...opt, maxNativeZoom: 11,
+      attribution: "지형 NASA GIBS · ASTER GDEM / Blue Marble" });
+    state.reliefBase.addTo(map);   // 전 지구 컬러 기복(결측 없음) — 바닥
+    state.reliefLayer.addTo(map);  // ASTER 상세 — 위 (결측·고위도는 바닥이 비침)
     buildTerrainLegend(); $("#terrain-legend").hidden = false;
     schedulePrefetch();
   } else {
     if (state.reliefLayer) map.removeLayer(state.reliefLayer);
+    if (state.reliefBase) map.removeLayer(state.reliefBase);
     $("#terrain-legend").hidden = true;
   }
 }
