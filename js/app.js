@@ -19,7 +19,7 @@ const state = {
   mode: "global", scene: null, year: 1490, globalYear: 1490,
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
-  baseLevel: null, playTimer: null, speed: 1, picking: false,
+  baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 
@@ -350,10 +350,17 @@ function onCoordMove(e) {
     `복사값 <span class="cr-copy">[${lng}, ${lat}]</span><br>` +
     `<span class="cr-hint">클릭하면 클립보드에 복사</span>`;
 }
+function placeCoordPin(latlng, text) {
+  if (state.coordPin) state.coordPin.remove();
+  state.coordPin = L.circleMarker(latlng, { pane: "eventPane", radius: 6, color: "#fff", weight: 2, fillColor: "#ffce6b", fillOpacity: 1 })
+    .bindTooltip(text, { permanent: true, direction: "top", className: "border-label" })
+    .addTo(map);
+}
 async function onCoordClick(e) {
   const lng = r4(e.latlng.lng), lat = r4(e.latlng.lat);
   const text = `[${lng}, ${lat}]`;
   map.closePopup(); // 경계/사건 팝업이 겹쳐 뜨는 것 방지
+  placeCoordPin(e.latlng, text); // 클릭한 정확한 지점에 핀
   let ok = false;
   try { await navigator.clipboard.writeText(text); ok = true; }
   catch {
@@ -382,6 +389,7 @@ function toggleCoord() {
     map.off("click", onCoordClick);
     $("#coord-readout").hidden = true;
     $("#coord-toast").hidden = true;
+    if (state.coordPin) { state.coordPin.remove(); state.coordPin = null; } // 핀 제거
   }
 }
 
