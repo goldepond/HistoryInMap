@@ -20,11 +20,7 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null,
-  terrain: false, terrainLayer: null, mtnLayer: null,
 };
-// 지형 토글: 산맥(갈색 영역) + 큰 강(파란 선)만 명확하게
-const MTN_FILL = "#7e5e3a", MTN_LINE = "#a6804c", RIVER_COLOR = "#5e9adb";
-const RIVERS_URL = "data/basemap/ne_110m_rivers_lake_centerlines.json"; // 큰 줄기 강
 const SPEEDS = [0.5, 1, 2, 4];
 
 const $ = (s) => document.querySelector(s);
@@ -33,16 +29,13 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-const TERRAIN_URL = "data/basemap/terrain-regions.geojson"; // 큰 줄기 벡터 지형(산맥·사막·고원…)
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
 map.createPane("basePane").style.zIndex = 200;
-map.createPane("terrainPane").style.zIndex = 250;  // 큰 줄기 지형(base 위, 국경 아래)
 map.createPane("borderPane").style.zIndex = 300;
 map.createPane("eventPane").style.zIndex = 450;
 // 성능: 수천 폴리곤을 DOM(SVG) 대신 캔버스에 그린다 → 팬/줌이 매끄러움
 const baseRenderer = L.canvas({ pane: "basePane", padding: 0.4 });
-const terrainRenderer = L.canvas({ pane: "terrainPane", padding: 0.4 });
 const borderRenderer = L.canvas({ pane: "borderPane", padding: 0.4 });
 map.attributionControl.setPrefix(false);
 map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth');
@@ -106,7 +99,7 @@ async function ensureBase(level) {
   baseLayer.addLayer(L.geoJSON(land, { ...opt, style: { color: "#62788a", weight: 0.9, fillColor: "#313b49", fillOpacity: 1 } }));
   // 호수: 바다와 같은 짙은 남색
   baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: "#1c3346", weight: 0.5, fillColor: "#0a1826", fillOpacity: 1 } }));
-  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#3f6486", weight: 0.7 } }));
+  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#5e9ad6", weight: 1.3, opacity: 0.9 } })); // 강 선명하게
 }
 map.on("zoomend", () => ensureBase(map.getZoom() >= 4 ? "50m" : "110m"));
 
@@ -125,7 +118,7 @@ const builtBorders = new Map(); // filename → 이미 만들어 둔 L.geoJSON (
 function showBorderLayer(gj, filename) {
   borderLayer.clearLayers(); borderLayer.addLayer(gj);
   state.currentBorderGeoLayer = gj; state.currentBorderFilename = filename;
-  $("#legend").hidden = state.terrain; // 지형 모드에선 경계 신뢰도 범례 숨김
+  $("#legend").hidden = false;
 }
 // 슬라이더를 빠르게 끌 때 무거운 파일을 연속 파싱하지 않도록 경계 로딩을 디바운스
 let borderTimer = null, pendingBorderYear = null;
@@ -349,53 +342,6 @@ function exitScene() {
 }
 
 // ─── UI 바인딩
-// ─── 큰 줄기 지형 레이어 토글 (벡터 · 기본 OFF)
-function buildTerrainLegend() {
-  const el = $("#terrain-legend");
-  if (el.dataset.built) return;
-  el.innerHTML = '<div class="legend-title">산·강</div>' +
-    `<div class="legend-row"><span class="swatch" style="background:${MTN_FILL};border:1px solid ${MTN_LINE}"></span>산맥</div>` +
-    `<div class="legend-row"><span class="swatch" style="background:${RIVER_COLOR};border:none;height:3px"></span>강</div>`;
-  el.dataset.built = "1";
-}
-async function ensureTerrain() {
-  if (state.terrainLayer) return state.terrainLayer;
-  const [regions, rivers] = await Promise.all([fetchJSON(TERRAIN_URL), fetchJSON(RIVERS_URL)]);
-  // 산맥(갈색 영역) — Range/mtn 만
-  state.mtnLayer = L.geoJSON(regions, {
-    pane: "terrainPane", renderer: terrainRenderer, interactive: false,
-    filter: (f) => f.properties.featurecla === "Range/mtn",
-    style: { color: MTN_LINE, weight: 0.7, fillColor: MTN_FILL, fillOpacity: 0.4 },
-    onEachFeature: (f, lyr) => { if (f.properties.name) lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "terrain-label" }); },
-  });
-  // 큰 강(파란 선)
-  const riverLayer = L.geoJSON(rivers, { pane: "terrainPane", renderer: terrainRenderer, interactive: false,
-    style: { color: RIVER_COLOR, weight: 1.5, opacity: 0.95 } });
-  state.terrainLayer = L.layerGroup([riverLayer, state.mtnLayer]);
-  return state.terrainLayer;
-}
-// 산맥 이름 겹침 방지: 줌 낮으면 큰 산맥만, 확대할수록 작은 것까지
-function updateTerrainLabels() {
-  if (!state.terrain || !state.mtnLayer) return;
-  const z = map.getZoom(), maxRank = z >= 4 ? 4 : z >= 3 ? 3 : z >= 2 ? 2 : 1;
-  state.mtnLayer.eachLayer((l) => {
-    if (!l.getTooltip || !l.getTooltip()) return;
-    (((l.feature?.properties?.scalerank ?? 9) <= maxRank)) ? l.openTooltip() : l.closeTooltip();
-  });
-}
-map.on("zoomend", updateTerrainLabels);
-async function toggleTerrain() {
-  state.terrain = !state.terrain;
-  $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
-  if (state.terrain) {
-    (await ensureTerrain()).addTo(map);
-    buildTerrainLegend(); $("#terrain-legend").hidden = false; $("#legend").hidden = true;
-    updateTerrainLabels();
-  } else {
-    if (state.terrainLayer) map.removeLayer(state.terrainLayer);
-    $("#terrain-legend").hidden = true; $("#legend").hidden = false;
-  }
-}
 
 // ─── 좌표 피커 (좌표 모드 ON일 때만 동작 · 기본 OFF)
 const COORD_DECIMALS = 4; // 약 ~10m
@@ -456,7 +402,6 @@ function bindUI() {
   $("#play-btn").addEventListener("click", togglePlay);
   $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
-  $("#terrain-toggle").addEventListener("click", toggleTerrain);
   $("#coord-toggle").addEventListener("click", toggleCoord);
   $("#info-toggle").addEventListener("click", () => ($("#info-modal").hidden = false));
   $("#info-close").addEventListener("click", () => ($("#info-modal").hidden = true));
