@@ -37,7 +37,7 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // HYP 컬러 음영기복(10800×5400), 정사각
+const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // HYP 컬러 음영기복(10m, 16384×8192), 정사각
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
 map.createPane("basePane").style.zIndex = 200;    // 평면 배경(땅·호수)
