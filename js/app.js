@@ -20,6 +20,7 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
+  terrain: false, reliefLayer: null,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 // 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
@@ -36,8 +37,10 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
+const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // GEBCO 음영기복(8192×4096), 정사각
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
+map.createPane("reliefPane").style.zIndex = 250;  // 지형도 이미지(base 위, 국경 아래)
 map.createPane("basePane").style.zIndex = 200;
 map.createPane("borderPane").style.zIndex = 300;
 map.createPane("eventPane").style.zIndex = 450;
@@ -45,7 +48,7 @@ map.createPane("eventPane").style.zIndex = 450;
 const baseRenderer = L.canvas({ pane: "basePane", padding: 0.4 });
 const borderRenderer = L.canvas({ pane: "borderPane", padding: 0.4 });
 map.attributionControl.setPrefix(false);
-map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth');
+map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth · 음영기복 GEBCO');
 const baseLayer = L.layerGroup().addTo(map);
 const borderLayer = L.layerGroup().addTo(map);
 const eventLayer = L.layerGroup().addTo(map);
@@ -417,6 +420,7 @@ function bindUI() {
   slider.addEventListener("input", () => setYear(parseInt(slider.value, 10), { fromSlider: true }));
   $("#play-btn").addEventListener("click", togglePlay);
   $("#theme-toggle").addEventListener("click", toggleTheme);
+  $("#terrain-toggle").addEventListener("click", toggleTerrain);
   $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
   $("#coord-toggle").addEventListener("click", toggleCoord);
@@ -451,6 +455,22 @@ function applyTheme(th, { rerender = true } = {}) {
   scheduleBorders(state.mode === "scene" ? state.scene.borderYear : state.year);
 }
 function toggleTheme() { applyTheme(state.theme === "light" ? "dark" : "light"); }
+
+// ─── 지형도(음영기복 이미지) 토글
+function toggleTerrain() {
+  state.terrain = !state.terrain;
+  $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
+  if (state.terrain) {
+    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane", className: "relief-img" });
+    state.reliefLayer.addTo(map);
+    if (map.hasLayer(baseLayer)) map.removeLayer(baseLayer);     // 평면 base 숨김 → 지형도 보이게
+    map.getPane("borderPane").style.opacity = "0.5";             // 국경 반투명 → 지형 비침
+  } else {
+    if (state.reliefLayer) map.removeLayer(state.reliefLayer);
+    if (!map.hasLayer(baseLayer)) map.addLayer(baseLayer);
+    map.getPane("borderPane").style.opacity = "1";
+  }
+}
 function togglePlay() {
   const btn = $("#play-btn");
   if (state.playTimer) { clearInterval(state.playTimer); state.playTimer = null; btn.textContent = "▶"; return; }
