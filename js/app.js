@@ -45,7 +45,10 @@ const CRS_GIBS = L.extend({}, L.CRS.EPSG4326, {
   zoom: (s) => Math.log(s / 320) / Math.LN2,
 });
 const map = L.map("map", { crs: CRS_GIBS, minZoom: 0, maxZoom: 9,
-  maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
+  maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6,
+  zoomControl: false,        // +/- 제거(휠로 줌)
+  zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, // 정적·즉시 줌(가장 빠른 체감)
+  zoomSnap: 1, wheelPxPerZoomLevel: 70 }); // 정수 줌(타일 선명) + 휠 한 칸=한 단계
 map.createPane("basePane").style.zIndex = 200;    // 평면 배경(땅·호수)
 map.createPane("reliefPane").style.zIndex = 250;  // 지형도 이미지(배경 위, 강·국경 아래)
 map.createPane("riverPane").style.zIndex = 280;   // 강(지형도 위에도 보이도록 별도 레이어)
