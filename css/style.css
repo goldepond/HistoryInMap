@@ -79,6 +79,19 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 .border-badge { position: absolute; z-index: 600; top: 12px; left: 12px; background: rgba(22,25,31,.9);
   border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px; font-size: 11px; color: var(--muted); }
 .border-badge strong { color: var(--accent-2); }
+/* 좌표 피커 (좌표 모드에서만 표시) */
+.leaflet-container.picking { cursor: crosshair; }
+.coord-readout { position: absolute; z-index: 650; bottom: 44px; left: 12px; background: rgba(22,25,31,.95);
+  border: 1px solid var(--accent); border-radius: 8px; padding: 8px 12px; font-size: 12px; color: var(--text);
+  font-family: ui-monospace, "Cascadia Code", Consolas, monospace; line-height: 1.5; pointer-events: none; max-width: 320px; }
+.coord-readout[hidden] { display: none; }
+.coord-readout .cr-ll { color: var(--muted); }
+.coord-readout .cr-copy { color: var(--accent-2); font-weight: 600; }
+.coord-readout .cr-hint { color: var(--muted); font-size: 11px; }
+.coord-toast { position: absolute; z-index: 660; top: 12px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: #07101f; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-weight: 600;
+  font-family: ui-monospace, Consolas, monospace; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.coord-toast[hidden] { display: none; }
 .disclaimer { position: absolute; z-index: 600; bottom: 10px; left: 10px; right: 10px; margin: 0 auto; max-width: 680px;
   background: rgba(22,25,31,.9); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
   font-size: 11px; color: var(--muted); text-align: center; pointer-events: none; }

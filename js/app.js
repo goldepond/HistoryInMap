@@ -19,7 +19,7 @@ const state = {
   mode: "global", scene: null, year: 1490, globalYear: 1490,
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
-  baseLevel: null, playTimer: null, speed: 1,
+  baseLevel: null, playTimer: null, speed: 1, picking: false,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 
@@ -339,11 +339,55 @@ function exitScene() {
 }
 
 // ─── UI 바인딩
+// ─── 좌표 피커 (좌표 모드 ON일 때만 동작 · 기본 OFF)
+const COORD_DECIMALS = 4; // 약 ~10m
+const r4 = (n) => Math.round(n * 10 ** COORD_DECIMALS) / 10 ** COORD_DECIMALS;
+let coordToastTimer = null;
+function onCoordMove(e) {
+  const lng = r4(e.latlng.lng), lat = r4(e.latlng.lat);
+  $("#coord-readout").innerHTML =
+    `<span class="cr-ll">경도 ${lng} · 위도 ${lat}</span><br>` +
+    `복사값 <span class="cr-copy">[${lng}, ${lat}]</span><br>` +
+    `<span class="cr-hint">클릭하면 클립보드에 복사</span>`;
+}
+async function onCoordClick(e) {
+  const lng = r4(e.latlng.lng), lat = r4(e.latlng.lat);
+  const text = `[${lng}, ${lat}]`;
+  map.closePopup(); // 경계/사건 팝업이 겹쳐 뜨는 것 방지
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; }
+  catch {
+    try { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); ok = document.execCommand("copy"); ta.remove(); } catch {}
+  }
+  const toast = $("#coord-toast");
+  toast.textContent = (ok ? "복사됨: " : "복사 실패 — 수동 복사: ") + text;
+  toast.hidden = false;
+  clearTimeout(coordToastTimer);
+  coordToastTimer = setTimeout(() => (toast.hidden = true), 1800);
+}
+function toggleCoord() {
+  state.picking = !state.picking;
+  $("#coord-toggle").setAttribute("aria-pressed", String(state.picking));
+  map.getContainer().classList.toggle("picking", state.picking);
+  if (state.picking) {
+    $("#coord-readout").innerHTML = '<span class="cr-hint">지도 위에서 움직이거나 클릭하세요</span>';
+    $("#coord-readout").hidden = false;
+    map.on("mousemove", onCoordMove);
+    map.on("click", onCoordClick);
+  } else {
+    map.off("mousemove", onCoordMove);
+    map.off("click", onCoordClick);
+    $("#coord-readout").hidden = true;
+    $("#coord-toast").hidden = true;
+  }
+}
+
 function bindUI() {
   slider.addEventListener("input", () => setYear(parseInt(slider.value, 10), { fromSlider: true }));
   $("#play-btn").addEventListener("click", togglePlay);
   $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
+  $("#coord-toggle").addEventListener("click", toggleCoord);
   $("#info-toggle").addEventListener("click", () => ($("#info-modal").hidden = false));
   $("#info-close").addEventListener("click", () => ($("#info-modal").hidden = true));
   $("#info-modal").addEventListener("click", (e) => { if (e.target.id === "info-modal") $("#info-modal").hidden = true; });
@@ -351,7 +395,7 @@ function bindUI() {
     if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
     if (e.key === "ArrowRight") setYear(Math.min(+slider.max, state.year + (+slider.step)));
     if (e.key === "ArrowLeft") setYear(Math.max(+slider.min, state.year - (+slider.step)));
-    if (e.key === "Escape") $("#info-modal").hidden = true;
+    if (e.key === "Escape") { $("#info-modal").hidden = true; if (state.picking) toggleCoord(); }
   });
 }
 const baseDelay = () => (state.mode === "scene" ? 900 : 1600);
