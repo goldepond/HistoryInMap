@@ -24,9 +24,9 @@ const state = {
 };
 // 지형 유형별 색 (산맥 갈색 / 사막 모래색 / 고원·분지·평원 …)
 const TERRAIN_COLORS = {
-  "Range/mtn": "#8a7252", "Plateau": "#9a865f", "Foothills": "#7a6a4c",
-  "Desert": "#cdb079", "Basin": "#4f6a4a", "Plain": "#5e7a50", "Lowland": "#4c6a64",
-  "Tundra": "#8b94a1", "Valley": "#647a55", "Delta": "#56897a", "Wetlands": "#4a7a6a", "Gorge": "#8a7252",
+  "Range/mtn": "#c79a63", "Plateau": "#c2a878", "Foothills": "#b09063",
+  "Desert": "#e3c98c", "Basin": "#83b06f", "Plain": "#93bd7c", "Lowland": "#74b0a4",
+  "Tundra": "#aeb8c6", "Valley": "#9bbb80", "Delta": "#6fc0a8", "Wetlands": "#67b89f", "Gorge": "#c79a63",
 };
 const TERRAIN_LABELS = { "Range/mtn": "산맥", "Plateau": "고원", "Desert": "사막", "Basin": "분지", "Plain": "평원", "Lowland": "저지", "Tundra": "툰드라" };
 const SPEEDS = [0.5, 1, 2, 4];
@@ -354,16 +354,17 @@ function exitScene() {
 
 // ─── UI 바인딩
 // ─── 큰 줄기 지형 레이어 토글 (벡터 · 기본 OFF)
+// 채색 없이 '윤곽선만' (지도책 느낌). 유형별 외곽선 색.
 function terrainStyle(f) {
-  const c = TERRAIN_COLORS[f.properties.featurecla] || "#6f6a58";
-  return { color: c, weight: 0.4, fillColor: c, fillOpacity: 0.72 };
+  const c = TERRAIN_COLORS[f.properties.featurecla] || "#9a8c70";
+  return { color: c, weight: 1.1, opacity: 0.85, fill: false, dashArray: "4,3" };
 }
 function buildTerrainLegend() {
   const el = $("#terrain-legend");
   if (el.dataset.built) return;
   el.innerHTML = '<div class="legend-title">지형 (큰 줄기)</div>' +
     Object.entries(TERRAIN_LABELS).map(([k, label]) =>
-      `<div class="legend-row"><span class="swatch" style="background:${TERRAIN_COLORS[k]};opacity:.85;border:none"></span>${label}</div>`).join("");
+      `<div class="legend-row"><span class="swatch" style="background:${TERRAIN_COLORS[k]};border:none"></span>${label}</div>`).join("");
   el.dataset.built = "1";
 }
 async function ensureTerrain() {
@@ -372,22 +373,31 @@ async function ensureTerrain() {
   state.terrainLayer = L.geoJSON(geo, {
     pane: "terrainPane", renderer: terrainRenderer, interactive: false, style: terrainStyle,
     onEachFeature: (f, lyr) => {
-      if ((f.properties.scalerank ?? 9) <= 1 && f.properties.name) // 큰 지형만 이름 표시
-        lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "terrain-label" });
+      if (f.properties.name) lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "terrain-label" });
     },
   });
   return state.terrainLayer;
 }
+// 라벨 겹침 방지: 줌이 낮으면 큰 지형(scalerank 작은 것)만, 확대할수록 작은 것까지
+function updateTerrainLabels() {
+  if (!state.terrain || !state.terrainLayer) return;
+  const z = map.getZoom(), maxRank = z >= 4 ? 4 : z >= 3 ? 3 : z >= 2 ? 2 : 1;
+  state.terrainLayer.eachLayer((l) => {
+    if (!l.getTooltip) return;
+    const r = l.feature?.properties?.scalerank ?? 9;
+    (r <= maxRank) ? l.openTooltip() : l.closeTooltip();
+  });
+}
+map.on("zoomend", updateTerrainLabels);
 async function toggleTerrain() {
   state.terrain = !state.terrain;
   $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
   if (state.terrain) {
     (await ensureTerrain()).addTo(map);
-    map.getPane("borderPane").style.opacity = "0.35"; // 국가 색칠 많이 흐리게 → 지형이 또렷
     buildTerrainLegend(); $("#terrain-legend").hidden = false; $("#legend").hidden = true;
+    updateTerrainLabels();
   } else {
     if (state.terrainLayer) map.removeLayer(state.terrainLayer);
-    map.getPane("borderPane").style.opacity = "1";
     $("#terrain-legend").hidden = true; $("#legend").hidden = false;
   }
 }
