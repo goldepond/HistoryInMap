@@ -48,7 +48,7 @@ const map = L.map("map", { crs: CRS_GIBS, minZoom: 0, maxZoom: 9,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6,
   zoomControl: false,        // +/- 제거(휠로 줌)
   zoomAnimation: false, fadeAnimation: false, markerZoomAnimation: false, // 정적·즉시 줌(가장 빠른 체감)
-  zoomSnap: 1, wheelPxPerZoomLevel: 70 }); // 정수 줌(타일 선명) + 휠 한 칸=한 단계
+  zoomSnap: 0.25, zoomDelta: 0.5, wheelPxPerZoomLevel: 120 }); // 미세 줌(0.25단위) → 중간 크기로 전체 보기 가능
 map.createPane("basePane").style.zIndex = 200;    // 평면 배경(땅·호수)
 map.createPane("reliefPane").style.zIndex = 250;  // 지형도 이미지(배경 위, 강·국경 아래)
 map.createPane("riverPane").style.zIndex = 280;   // 강(지형도 위에도 보이도록 별도 레이어)
@@ -484,7 +484,7 @@ function buildTerrainLegend() {
 // 인접 줌(±1) 타일을 현재 화면 범위만큼 미리 받아둠 → 줌하면 이미 캐시되어 즉시
 function prefetchRelief() {
   if (!state.terrain) return;
-  const b = map.getBounds(), z = map.getZoom();
+  const b = map.getBounds(), z = Math.round(map.getZoom()); // GIBS는 정수 레벨만 존재
   for (const Z of [z + 1, z - 1]) {
     if (Z < 0 || Z > 11) continue;
     const nw = map.project(b.getNorthWest(), Z), se = map.project(b.getSouthEast(), Z);
