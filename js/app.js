@@ -28,6 +28,7 @@ const TERRAIN_COLORS = {
   "Desert": "#cdb079", "Basin": "#4f6a4a", "Plain": "#5e7a50", "Lowland": "#4c6a64",
   "Tundra": "#8b94a1", "Valley": "#647a55", "Delta": "#56897a", "Wetlands": "#4a7a6a", "Gorge": "#8a7252",
 };
+const TERRAIN_LABELS = { "Range/mtn": "산맥", "Plateau": "고원", "Desert": "사막", "Basin": "분지", "Plain": "평원", "Lowland": "저지", "Tundra": "툰드라" };
 const SPEEDS = [0.5, 1, 2, 4];
 
 const $ = (s) => document.querySelector(s);
@@ -48,7 +49,7 @@ const baseRenderer = L.canvas({ pane: "basePane", padding: 0.4 });
 const terrainRenderer = L.canvas({ pane: "terrainPane", padding: 0.4 });
 const borderRenderer = L.canvas({ pane: "borderPane", padding: 0.4 });
 map.attributionControl.setPrefix(false);
-map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth · 위성 NASA Blue Marble');
+map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth');
 const baseLayer = L.layerGroup().addTo(map);
 const borderLayer = L.layerGroup().addTo(map);
 const eventLayer = L.layerGroup().addTo(map);
@@ -128,7 +129,7 @@ const builtBorders = new Map(); // filename → 이미 만들어 둔 L.geoJSON (
 function showBorderLayer(gj, filename) {
   borderLayer.clearLayers(); borderLayer.addLayer(gj);
   state.currentBorderGeoLayer = gj; state.currentBorderFilename = filename;
-  $("#legend").hidden = false;
+  $("#legend").hidden = state.terrain; // 지형 모드에선 경계 신뢰도 범례 숨김
 }
 // 슬라이더를 빠르게 끌 때 무거운 파일을 연속 파싱하지 않도록 경계 로딩을 디바운스
 let borderTimer = null, pendingBorderYear = null;
@@ -355,7 +356,15 @@ function exitScene() {
 // ─── 큰 줄기 지형 레이어 토글 (벡터 · 기본 OFF)
 function terrainStyle(f) {
   const c = TERRAIN_COLORS[f.properties.featurecla] || "#6f6a58";
-  return { color: c, weight: 0.4, fillColor: c, fillOpacity: 0.5 };
+  return { color: c, weight: 0.4, fillColor: c, fillOpacity: 0.72 };
+}
+function buildTerrainLegend() {
+  const el = $("#terrain-legend");
+  if (el.dataset.built) return;
+  el.innerHTML = '<div class="legend-title">지형 (큰 줄기)</div>' +
+    Object.entries(TERRAIN_LABELS).map(([k, label]) =>
+      `<div class="legend-row"><span class="swatch" style="background:${TERRAIN_COLORS[k]};opacity:.85;border:none"></span>${label}</div>`).join("");
+  el.dataset.built = "1";
 }
 async function ensureTerrain() {
   if (state.terrainLayer) return state.terrainLayer;
@@ -374,10 +383,12 @@ async function toggleTerrain() {
   $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
   if (state.terrain) {
     (await ensureTerrain()).addTo(map);
-    map.getPane("borderPane").style.opacity = "0.6"; // 국경 살짝 흐리게 → 지형 비침
+    map.getPane("borderPane").style.opacity = "0.35"; // 국가 색칠 많이 흐리게 → 지형이 또렷
+    buildTerrainLegend(); $("#terrain-legend").hidden = false; $("#legend").hidden = true;
   } else {
     if (state.terrainLayer) map.removeLayer(state.terrainLayer);
     map.getPane("borderPane").style.opacity = "1";
+    $("#terrain-legend").hidden = true; $("#legend").hidden = false;
   }
 }
 
