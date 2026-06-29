@@ -20,15 +20,11 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null,
-  terrain: false, terrainLayer: null,
+  terrain: false, terrainLayer: null, mtnLayer: null,
 };
-// 지형 유형별 색 (산맥 갈색 / 사막 모래색 / 고원·분지·평원 …)
-const TERRAIN_COLORS = {
-  "Range/mtn": "#c79a63", "Plateau": "#c2a878", "Foothills": "#b09063",
-  "Desert": "#e3c98c", "Basin": "#83b06f", "Plain": "#93bd7c", "Lowland": "#74b0a4",
-  "Tundra": "#aeb8c6", "Valley": "#9bbb80", "Delta": "#6fc0a8", "Wetlands": "#67b89f", "Gorge": "#c79a63",
-};
-const TERRAIN_LABELS = { "Range/mtn": "산맥", "Plateau": "고원", "Desert": "사막", "Basin": "분지", "Plain": "평원", "Lowland": "저지", "Tundra": "툰드라" };
+// 지형 토글: 산맥(갈색 영역) + 큰 강(파란 선)만 명확하게
+const MTN_FILL = "#7e5e3a", MTN_LINE = "#a6804c", RIVER_COLOR = "#5e9adb";
+const RIVERS_URL = "data/basemap/ne_110m_rivers_lake_centerlines.json"; // 큰 줄기 강
 const SPEEDS = [0.5, 1, 2, 4];
 
 const $ = (s) => document.querySelector(s);
@@ -354,38 +350,37 @@ function exitScene() {
 
 // ─── UI 바인딩
 // ─── 큰 줄기 지형 레이어 토글 (벡터 · 기본 OFF)
-// 채색 없이 '윤곽선만' (지도책 느낌). 유형별 외곽선 색.
-function terrainStyle(f) {
-  const c = TERRAIN_COLORS[f.properties.featurecla] || "#9a8c70";
-  return { color: c, weight: 1.1, opacity: 0.85, fill: false, dashArray: "4,3" };
-}
 function buildTerrainLegend() {
   const el = $("#terrain-legend");
   if (el.dataset.built) return;
-  el.innerHTML = '<div class="legend-title">지형 (큰 줄기)</div>' +
-    Object.entries(TERRAIN_LABELS).map(([k, label]) =>
-      `<div class="legend-row"><span class="swatch" style="background:${TERRAIN_COLORS[k]};border:none"></span>${label}</div>`).join("");
+  el.innerHTML = '<div class="legend-title">산·강</div>' +
+    `<div class="legend-row"><span class="swatch" style="background:${MTN_FILL};border:1px solid ${MTN_LINE}"></span>산맥</div>` +
+    `<div class="legend-row"><span class="swatch" style="background:${RIVER_COLOR};border:none;height:3px"></span>강</div>`;
   el.dataset.built = "1";
 }
 async function ensureTerrain() {
   if (state.terrainLayer) return state.terrainLayer;
-  const geo = await fetchJSON(TERRAIN_URL);
-  state.terrainLayer = L.geoJSON(geo, {
-    pane: "terrainPane", renderer: terrainRenderer, interactive: false, style: terrainStyle,
-    onEachFeature: (f, lyr) => {
-      if (f.properties.name) lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "terrain-label" });
-    },
+  const [regions, rivers] = await Promise.all([fetchJSON(TERRAIN_URL), fetchJSON(RIVERS_URL)]);
+  // 산맥(갈색 영역) — Range/mtn 만
+  state.mtnLayer = L.geoJSON(regions, {
+    pane: "terrainPane", renderer: terrainRenderer, interactive: false,
+    filter: (f) => f.properties.featurecla === "Range/mtn",
+    style: { color: MTN_LINE, weight: 0.7, fillColor: MTN_FILL, fillOpacity: 0.4 },
+    onEachFeature: (f, lyr) => { if (f.properties.name) lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "terrain-label" }); },
   });
+  // 큰 강(파란 선)
+  const riverLayer = L.geoJSON(rivers, { pane: "terrainPane", renderer: terrainRenderer, interactive: false,
+    style: { color: RIVER_COLOR, weight: 1.5, opacity: 0.95 } });
+  state.terrainLayer = L.layerGroup([riverLayer, state.mtnLayer]);
   return state.terrainLayer;
 }
-// 라벨 겹침 방지: 줌이 낮으면 큰 지형(scalerank 작은 것)만, 확대할수록 작은 것까지
+// 산맥 이름 겹침 방지: 줌 낮으면 큰 산맥만, 확대할수록 작은 것까지
 function updateTerrainLabels() {
-  if (!state.terrain || !state.terrainLayer) return;
+  if (!state.terrain || !state.mtnLayer) return;
   const z = map.getZoom(), maxRank = z >= 4 ? 4 : z >= 3 ? 3 : z >= 2 ? 2 : 1;
-  state.terrainLayer.eachLayer((l) => {
-    if (!l.getTooltip) return;
-    const r = l.feature?.properties?.scalerank ?? 9;
-    (r <= maxRank) ? l.openTooltip() : l.closeTooltip();
+  state.mtnLayer.eachLayer((l) => {
+    if (!l.getTooltip || !l.getTooltip()) return;
+    (((l.feature?.properties?.scalerank ?? 9) <= maxRank)) ? l.openTooltip() : l.closeTooltip();
   });
 }
 map.on("zoomend", updateTerrainLabels);
