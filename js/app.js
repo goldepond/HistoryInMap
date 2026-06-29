@@ -354,9 +354,17 @@ function onCoordMove(e) {
     `복사값 <span class="cr-copy">[${lng}, ${lat}]</span><br>` +
     `<span class="cr-hint">클릭하면 클립보드에 복사</span>`;
 }
+// 물방울 핀(SVG) — 끝점이 정확한 지점을 가리킴
+const COORD_PIN_ICON = L.divIcon({
+  className: "coord-pin",
+  html: '<svg width="22" height="30" viewBox="0 0 22 30" xmlns="http://www.w3.org/2000/svg">' +
+    '<path d="M11 1C5.5 1 1 5.5 1 11c0 7.5 10 18 10 18s10-10.5 10-18C21 5.5 16.5 1 11 1z" fill="#ffce6b" stroke="#0b1020" stroke-width="1.6"/>' +
+    '<circle cx="11" cy="11" r="3.4" fill="#0b1020"/></svg>',
+  iconSize: [22, 30], iconAnchor: [11, 29], tooltipAnchor: [0, -26],
+});
 function placeCoordPin(latlng, text) {
   if (state.coordPin) state.coordPin.remove();
-  state.coordPin = L.circleMarker(latlng, { pane: "eventPane", radius: 5, color: "#0b1020", weight: 1.5, fillColor: "#ffce6b", fillOpacity: 1 })
+  state.coordPin = L.marker(latlng, { icon: COORD_PIN_ICON, interactive: false, keyboard: false })
     .bindTooltip(text, { permanent: true, direction: "top", className: "border-label" })
     .addTo(map);
 }
