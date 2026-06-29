@@ -478,6 +478,27 @@ function buildTerrainLegend() {
     '<div class="legend-row"><span class="swatch" style="background:#6f99a8;border:none"></span>물</div>';
   el.dataset.built = "1";
 }
+// 인접 줌(±1) 타일을 현재 화면 범위만큼 미리 받아둠 → 줌하면 이미 캐시되어 즉시
+function prefetchRelief() {
+  if (!state.terrain) return;
+  const b = map.getBounds(), z = map.getZoom();
+  for (const Z of [z + 1, z - 1]) {
+    if (Z < 0 || Z > 11) continue;
+    const nw = map.project(b.getNorthWest(), Z), se = map.project(b.getSouthEast(), Z);
+    const x0 = Math.floor(nw.x / 512), x1 = Math.floor(se.x / 512);
+    const y0 = Math.floor(nw.y / 512), y1 = Math.floor(se.y / 512);
+    if ((x1 - x0 + 1) * (y1 - y0 + 1) > 80) continue; // 너무 많으면 생략(부하 방지)
+    for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+      if (x < 0 || y < 0) continue;
+      const img = new Image();
+      img.src = GIBS_RELIEF.replace("{z}", Z).replace("{x}", x).replace("{y}", y);
+    }
+  }
+}
+let prefetchTimer;
+function schedulePrefetch() { clearTimeout(prefetchTimer); prefetchTimer = setTimeout(prefetchRelief, 350); }
+map.on("moveend", schedulePrefetch);
+
 // 지형도(GIBS 컬러 음영기복 타일) — 보이는 영역만 줌 단계별로 받아 빠르고, 줌해도 선명
 function setTerrainLayer(on) {
   state.terrain = on;
@@ -485,9 +506,11 @@ function setTerrainLayer(on) {
     if (!state.reliefLayer) state.reliefLayer = L.tileLayer(GIBS_RELIEF, {
       pane: "reliefPane", tileSize: 512, minZoom: 0, maxNativeZoom: 11, noWrap: true,
       bounds: [[-90, -180], [90, 180]], attribution: "지형 NASA GIBS · ASTER GDEM",
+      keepBuffer: 4, updateWhenZooming: false, // 주변 타일 유지 + 줌 중 깜빡임↓
     });
     state.reliefLayer.addTo(map);
     buildTerrainLegend(); $("#terrain-legend").hidden = false;
+    schedulePrefetch();
   } else {
     if (state.reliefLayer) map.removeLayer(state.reliefLayer);
     $("#terrain-legend").hidden = true;
@@ -531,3 +554,5 @@ async function init() {
   } catch (e) { console.error(e); showLoading("⚠ " + e.message); }
 }
 init();
+// 지형 타일 영구 캐시(Service Worker) — 줌 인/아웃 왕복·재방문 시 네트워크 없이 즉시
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
