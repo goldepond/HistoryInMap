@@ -20,7 +20,7 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
-  terrain: false, mtnLayer: null,
+  terrain: false, reliefLayer: null,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 // 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
@@ -37,7 +37,7 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-const MOUNTAINS_URL = "data/basemap/mountains.geojson"; // 산맥(굵은 색칠) — 산/물 한눈 파악
+const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // HYP 컬러 음영기복(10800×5400), 정사각
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
 map.createPane("reliefPane").style.zIndex = 250;  // 지형도 이미지(base 위, 국경 아래)
@@ -454,45 +454,31 @@ function applyTheme(th, { rerender = true } = {}) {
   state.baseLevel = null; ensureBase(map.getZoom() >= 4 ? "50m" : "110m"); // 지형 색 다시 칠
   builtBorders.clear(); state.currentBorderFilename = null;                 // 국경 색 다시 칠
   scheduleBorders(state.mode === "scene" ? state.scene.borderYear : state.year);
-  if (state.mtnLayer) state.mtnLayer.setStyle(mtnStyle);                    // 산맥 색 테마 반영
-  const tl = $("#terrain-legend"); if (tl) { tl.dataset.built = ""; if (state.terrain) buildTerrainLegend(); }
 }
 function toggleTheme() { applyTheme(state.theme === "light" ? "dark" : "light"); }
 
-// ─── 지형 토글: 산맥(굵은 색칠) — 물(파랑)은 상시, 산을 또렷이 → "산이냐 물이냐" 한눈에
-const mtnStyle = () => { const t = theme(); return { color: t.mtnEdge, weight: 0.8, fillColor: t.mtn, fillOpacity: 0.62 }; };
-async function ensureMountains() {
-  if (state.mtnLayer) return state.mtnLayer;
-  const geo = await fetchJSON(MOUNTAINS_URL);
-  state.mtnLayer = L.geoJSON(geo, {
-    pane: "reliefPane", renderer: terrainRenderer, interactive: false, style: mtnStyle,
-    onEachFeature: (f, lyr) => { if (f.properties.name) lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "border-label" }); },
-  });
-  return state.mtnLayer;
-}
-function updateMtnLabels() {
-  if (!state.terrain || !state.mtnLayer) return;
-  const z = map.getZoom(), maxRank = z >= 4 ? 4 : z >= 3 ? 3 : z >= 2 ? 2 : 1;
-  state.mtnLayer.eachLayer((l) => { if (l.getTooltip && l.getTooltip()) (((l.feature?.properties?.scalerank ?? 9) <= maxRank) ? l.openTooltip() : l.closeTooltip()); });
-}
-map.on("zoomend", updateMtnLabels);
+// ─── 지형도 토글: 컬러 음영기복(HYP) — 초록 평지·갈색 산지·파랑 물 (입체 음영)
 function buildTerrainLegend() {
   const el = $("#terrain-legend"); if (!el || el.dataset.built) return;
-  el.innerHTML = '<div class="legend-title">지형</div>' +
-    `<div class="legend-row"><span class="swatch" style="background:${theme().mtn};border:1px solid ${theme().mtnEdge}"></span>산맥</div>` +
-    `<div class="legend-row"><span class="swatch" style="background:${theme().river};border:none;height:3px"></span>강·바다(물)</div>`;
+  el.innerHTML = '<div class="legend-title">지형(고도)</div>' +
+    '<div class="legend-row"><span class="swatch" style="background:#7fb060;border:none"></span>평지</div>' +
+    '<div class="legend-row"><span class="swatch" style="background:#a9824e;border:none"></span>산지</div>' +
+    '<div class="legend-row"><span class="swatch" style="background:#dcd6c0;border:none"></span>고봉</div>' +
+    '<div class="legend-row"><span class="swatch" style="background:#6f99a8;border:none"></span>물</div>';
   el.dataset.built = "1";
 }
 async function toggleTerrain() {
   state.terrain = !state.terrain;
   $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
   if (state.terrain) {
-    (await ensureMountains()).addTo(map);
-    map.getPane("borderPane").style.opacity = "0.4"; // 국가 색칠 흐리게 → 산·물 도드라지게
+    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane" });
+    state.reliefLayer.addTo(map);
+    if (map.hasLayer(baseLayer)) map.removeLayer(baseLayer);  // 평면 base 숨김 → 지형도 보이게
+    map.getPane("borderPane").style.opacity = "0.5";          // 국경 반투명 → 지형 비침
     buildTerrainLegend(); $("#terrain-legend").hidden = false; $("#legend").hidden = true;
-    updateMtnLabels();
   } else {
-    if (state.mtnLayer) map.removeLayer(state.mtnLayer);
+    if (state.reliefLayer) map.removeLayer(state.reliefLayer);
+    if (!map.hasLayer(baseLayer)) map.addLayer(baseLayer);
     map.getPane("borderPane").style.opacity = "1";
     $("#terrain-legend").hidden = true; $("#legend").hidden = false;
   }
