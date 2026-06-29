@@ -138,6 +138,8 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 /* Leaflet labels & popups */
 .border-label { background: transparent; border: none; box-shadow: none; color: #f4f7ff; font-size: 11px;
   font-weight: 600; text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.terrain-label { background: transparent; border: none; box-shadow: none; color: #f0e4cf; font-size: 10px;
+  font-style: italic; letter-spacing: .3px; text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
 .leaflet-popup-content-wrapper { background: var(--panel-2); color: var(--text); }
 .leaflet-popup-tip { background: var(--panel-2); }
 .event-popup h3 { margin: 0 0 6px; font-size: 15px; }

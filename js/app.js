@@ -20,7 +20,13 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null,
-  terrain: false, reliefLayer: null,
+  terrain: false, terrainLayer: null,
+};
+// 지형 유형별 색 (산맥 갈색 / 사막 모래색 / 고원·분지·평원 …)
+const TERRAIN_COLORS = {
+  "Range/mtn": "#8a7252", "Plateau": "#9a865f", "Foothills": "#7a6a4c",
+  "Desert": "#cdb079", "Basin": "#4f6a4a", "Plain": "#5e7a50", "Lowland": "#4c6a64",
+  "Tundra": "#8b94a1", "Valley": "#647a55", "Delta": "#56897a", "Wetlands": "#4a7a6a", "Gorge": "#8a7252",
 };
 const SPEEDS = [0.5, 1, 2, 4];
 
@@ -30,15 +36,16 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // NASA Blue Marble 계열, 정사각 1600×800
+const TERRAIN_URL = "data/basemap/terrain-regions.geojson"; // 큰 줄기 벡터 지형(산맥·사막·고원…)
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
-map.createPane("reliefPane").style.zIndex = 150;  // 지형 이미지(맨 아래)
 map.createPane("basePane").style.zIndex = 200;
+map.createPane("terrainPane").style.zIndex = 250;  // 큰 줄기 지형(base 위, 국경 아래)
 map.createPane("borderPane").style.zIndex = 300;
 map.createPane("eventPane").style.zIndex = 450;
 // 성능: 수천 폴리곤을 DOM(SVG) 대신 캔버스에 그린다 → 팬/줌이 매끄러움
 const baseRenderer = L.canvas({ pane: "basePane", padding: 0.4 });
+const terrainRenderer = L.canvas({ pane: "terrainPane", padding: 0.4 });
 const borderRenderer = L.canvas({ pane: "borderPane", padding: 0.4 });
 map.attributionControl.setPrefix(false);
 map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth · 위성 NASA Blue Marble');
@@ -345,18 +352,31 @@ function exitScene() {
 }
 
 // ─── UI 바인딩
-// ─── 지형(위성) 레이어 토글 (기본 OFF)
-function toggleTerrain() {
+// ─── 큰 줄기 지형 레이어 토글 (벡터 · 기본 OFF)
+function terrainStyle(f) {
+  const c = TERRAIN_COLORS[f.properties.featurecla] || "#6f6a58";
+  return { color: c, weight: 0.4, fillColor: c, fillOpacity: 0.5 };
+}
+async function ensureTerrain() {
+  if (state.terrainLayer) return state.terrainLayer;
+  const geo = await fetchJSON(TERRAIN_URL);
+  state.terrainLayer = L.geoJSON(geo, {
+    pane: "terrainPane", renderer: terrainRenderer, interactive: false, style: terrainStyle,
+    onEachFeature: (f, lyr) => {
+      if ((f.properties.scalerank ?? 9) <= 1 && f.properties.name) // 큰 지형만 이름 표시
+        lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "terrain-label" });
+    },
+  });
+  return state.terrainLayer;
+}
+async function toggleTerrain() {
   state.terrain = !state.terrain;
   $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
   if (state.terrain) {
-    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane" });
-    state.reliefLayer.addTo(map);
-    if (map.hasLayer(baseLayer)) map.removeLayer(baseLayer);   // 평면 base 숨김 → 지형 보이게
-    map.getPane("borderPane").style.opacity = "0.5";           // 국경 흐리게 → 지형 비침
+    (await ensureTerrain()).addTo(map);
+    map.getPane("borderPane").style.opacity = "0.6"; // 국경 살짝 흐리게 → 지형 비침
   } else {
-    if (state.reliefLayer) map.removeLayer(state.reliefLayer);
-    if (!map.hasLayer(baseLayer)) map.addLayer(baseLayer);
+    if (state.terrainLayer) map.removeLayer(state.terrainLayer);
     map.getPane("borderPane").style.opacity = "1";
   }
 }
