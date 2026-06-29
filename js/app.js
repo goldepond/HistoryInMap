@@ -19,9 +19,16 @@ const state = {
   mode: "global", scene: null, year: 1490, globalYear: 1490,
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
-  baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null,
+  baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
 };
 const SPEEDS = [0.5, 1, 2, 4];
+// 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
+const THEMES = {
+  dark:  { land: "#313b49", coast: "#62788a", ocean: "#0a1826", lakeStroke: "#1c3346", river: "#5e9ad6", borderStroke: "#0a1018", empty: "#46536b", subjSL: "58%, 58%" },
+  light: { land: "#e8e2d6", coast: "#ab9f88", ocean: "#bcd5e8", lakeStroke: "#88aec9", river: "#3f7cc0", borderStroke: "#6f6552", empty: "#cbc4b4", subjSL: "42%, 62%" },
+};
+const theme = () => THEMES[state.theme];
+try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); } catch {} // CSS 깜빡임 방지
 
 const $ = (s) => document.querySelector(s);
 const slider = $("#year-slider");
@@ -96,20 +103,21 @@ async function ensureBase(level) {
   const opt = { pane: "basePane", interactive: false, renderer: baseRenderer, smoothFactor: 2 };
   baseLayer.clearLayers();
   // 땅: 밝은 슬레이트 + 또렷한 해안선(바다와 명확히 구분)
-  baseLayer.addLayer(L.geoJSON(land, { ...opt, style: { color: "#62788a", weight: 0.9, fillColor: "#313b49", fillOpacity: 1 } }));
+  const t = theme();
+  baseLayer.addLayer(L.geoJSON(land, { ...opt, style: { color: t.coast, weight: 0.9, fillColor: t.land, fillOpacity: 1 } }));
   // 호수: 바다와 같은 짙은 남색
-  baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: "#1c3346", weight: 0.5, fillColor: "#0a1826", fillOpacity: 1 } }));
-  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#5e9ad6", weight: 1.9, opacity: 0.9 } })); // 강 선명하게
+  baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: t.lakeStroke, weight: 0.5, fillColor: t.ocean, fillOpacity: 1 } }));
+  baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: t.river, weight: 1.9, opacity: 0.9 } })); // 강 선명하게
 }
 map.on("zoomend", () => ensureBase(map.getZoom() >= 4 ? "50m" : "110m"));
 
 // ─── 국경
 function nearestBorder(year) { return state.years.reduce((b, y) => Math.abs(y.year - year) < Math.abs(b.year - year) ? y : b, state.years[0]); }
 function precisionOf(p) { const n = parseInt(p.BORDERPRECISION, 10); return Number.isFinite(n) ? n : 2; }
-function colorForSubject(s) { s = (s || "").trim(); if (!s) return "#46536b"; let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return `hsl(${h}, 58%, 58%)`; }
+function colorForSubject(s) { s = (s || "").trim(); if (!s) return theme().empty; let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360; return `hsl(${h}, ${theme().subjSL})`; }
 function borderStyle(f) {
   const p = f.properties || {}, prec = precisionOf(p);
-  return { color: "#0a1018", weight: prec >= 3 ? 1 : prec === 2 ? 0.8 : 0.6, dashArray: prec >= 3 ? null : prec === 2 ? "3,3" : "1,4",
+  return { color: theme().borderStroke, weight: prec >= 3 ? 1 : prec === 2 ? 0.8 : 0.6, dashArray: prec >= 3 ? null : prec === 2 ? "3,3" : "1,4",
     fillColor: colorForSubject(p.SUBJECTO || p.NAME), fillOpacity: prec >= 3 ? 0.5 : prec === 2 ? 0.4 : 0.24 };
 }
 async function loadBorderFile(fn) { if (state.borderCache.has(fn)) return state.borderCache.get(fn); const g = await fetchJSON(BORDERS_DIR + fn); state.borderCache.set(fn, g); return g; }
@@ -408,6 +416,7 @@ function toggleCoord() {
 function bindUI() {
   slider.addEventListener("input", () => setYear(parseInt(slider.value, 10), { fromSlider: true }));
   $("#play-btn").addEventListener("click", togglePlay);
+  $("#theme-toggle").addEventListener("click", toggleTheme);
   $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
   $("#coord-toggle").addEventListener("click", toggleCoord);
@@ -430,6 +439,18 @@ function startPlayTimer() {
     setYear(n);
   }, baseDelay() / state.speed);
 }
+// ─── 다크/라이트 테마
+function applyTheme(th, { rerender = true } = {}) {
+  state.theme = th;
+  document.documentElement.setAttribute("data-theme", th);
+  try { localStorage.setItem("theme", th); } catch {}
+  const b = $("#theme-toggle"); if (b) b.textContent = th === "light" ? "🌙" : "☀️";
+  if (!rerender) return;
+  state.baseLevel = null; ensureBase(map.getZoom() >= 4 ? "50m" : "110m"); // 지형 색 다시 칠
+  builtBorders.clear(); state.currentBorderFilename = null;                 // 국경 색 다시 칠
+  scheduleBorders(state.mode === "scene" ? state.scene.borderYear : state.year);
+}
+function toggleTheme() { applyTheme(state.theme === "light" ? "dark" : "light"); }
 function togglePlay() {
   const btn = $("#play-btn");
   if (state.playTimer) { clearInterval(state.playTimer); state.playTimer = null; btn.textContent = "▶"; return; }
@@ -448,6 +469,7 @@ async function init() {
     const man = await loadManifest();
     applyManifest(man);
     if (!state.years.length) throw new Error("시대(eras)가 없습니다. content/manifest.json 을 빌드했나요? (npm run build)");
+    try { applyTheme(localStorage.getItem("theme") || "dark", { rerender: false }); } catch { applyTheme("dark", { rerender: false }); }
     await ensureBase("110m");
     buildSceneSelect(); bindUI();
     state.year = state.globalYear = 1490;
