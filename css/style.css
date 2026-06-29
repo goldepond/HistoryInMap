@@ -111,7 +111,13 @@ body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
   background: var(--overlay); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px;
   font-size: 11px; color: var(--muted); text-align: center; pointer-events: none; }
 .disclaimer strong { color: var(--accent-2); }
-.legend { position: absolute; z-index: 600; top: 12px; right: 12px; background: var(--overlay);
+/* 우상단 스택: 레이어 패널 + 범례들을 세로로 쌓음 */
+.map-tr-stack { position: absolute; z-index: 600; top: 12px; right: 12px;
+  display: flex; flex-direction: column; gap: 8px; align-items: flex-end; max-width: 230px; }
+.layer-panel { background: var(--overlay); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 12px; }
+.lyr-row { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; cursor: pointer; user-select: none; }
+.lyr-row input { accent-color: var(--accent); cursor: pointer; width: 15px; height: 15px; margin: 0; }
+.legend { background: var(--overlay);
   border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 12px; }
 .legend-title { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .legend-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }

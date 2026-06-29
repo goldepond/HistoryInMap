@@ -20,7 +20,7 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
-  terrain: false, reliefLayer: null,
+  terrain: false, reliefLayer: null, riverOn: true, borderOn: true,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 // 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
@@ -133,7 +133,7 @@ const builtBorders = new Map(); // filename → 이미 만들어 둔 L.geoJSON (
 function showBorderLayer(gj, filename) {
   borderLayer.clearLayers(); borderLayer.addLayer(gj);
   state.currentBorderGeoLayer = gj; state.currentBorderFilename = filename;
-  $("#legend").hidden = state.terrain;
+  $("#legend").hidden = !state.borderOn;
 }
 // 슬라이더를 빠르게 끌 때 무거운 파일을 연속 파싱하지 않도록 경계 로딩을 디바운스
 let borderTimer = null, pendingBorderYear = null;
@@ -424,7 +424,9 @@ function bindUI() {
   slider.addEventListener("input", () => setYear(parseInt(slider.value, 10), { fromSlider: true }));
   $("#play-btn").addEventListener("click", togglePlay);
   $("#theme-toggle").addEventListener("click", toggleTheme);
-  $("#terrain-toggle").addEventListener("click", toggleTerrain);
+  $("#lyr-terrain").addEventListener("change", (e) => setTerrainLayer(e.target.checked));
+  $("#lyr-river").addEventListener("change", (e) => setRiverLayer(e.target.checked));
+  $("#lyr-border").addEventListener("change", (e) => setBorderLayer(e.target.checked));
   $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
   $("#coord-toggle").addEventListener("click", toggleCoord);
@@ -460,7 +462,7 @@ function applyTheme(th, { rerender = true } = {}) {
 }
 function toggleTheme() { applyTheme(state.theme === "light" ? "dark" : "light"); }
 
-// ─── 지형도 토글: 컬러 음영기복(HYP) — 초록 평지·갈색 산지·파랑 물 (입체 음영)
+// ─── 레이어 독립 토글: 지형도 / 강 / 국경 (서로 영향 없음)
 function buildTerrainLegend() {
   const el = $("#terrain-legend"); if (!el || el.dataset.built) return;
   el.innerHTML = '<div class="legend-title">지형(고도)</div>' +
@@ -470,22 +472,28 @@ function buildTerrainLegend() {
     '<div class="legend-row"><span class="swatch" style="background:#6f99a8;border:none"></span>물</div>';
   el.dataset.built = "1";
 }
-async function toggleTerrain() {
-  state.terrain = !state.terrain;
-  $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
-  if (state.terrain) {
+// 지형도(컬러 음영기복 이미지) — 켜면 reliefPane(z250)이 평면 배경을 덮음
+function setTerrainLayer(on) {
+  state.terrain = on;
+  if (on) {
     if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane" });
     state.reliefLayer.addTo(map);
-    if (map.hasLayer(baseLayer)) map.removeLayer(baseLayer);  // 평면 땅·호수만 숨김(지형도가 대신)
-    map.getPane("borderPane").style.opacity = "0.85";         // 국경·국가는 위에 유지(살짝 투명)
-    // 강(riverLayer)은 그대로 → 지형도 위에 강·국경이 얹혀 보인다
-    buildTerrainLegend(); $("#terrain-legend").hidden = false; $("#legend").hidden = true;
+    buildTerrainLegend(); $("#terrain-legend").hidden = false;
   } else {
     if (state.reliefLayer) map.removeLayer(state.reliefLayer);
-    if (!map.hasLayer(baseLayer)) map.addLayer(baseLayer);
-    map.getPane("borderPane").style.opacity = "1";
-    $("#terrain-legend").hidden = true; $("#legend").hidden = false;
+    $("#terrain-legend").hidden = true;
   }
+}
+function setRiverLayer(on) {
+  state.riverOn = on;
+  if (on && !map.hasLayer(riverLayer)) map.addLayer(riverLayer);
+  else if (!on && map.hasLayer(riverLayer)) map.removeLayer(riverLayer);
+}
+function setBorderLayer(on) {
+  state.borderOn = on;
+  if (on && !map.hasLayer(borderLayer)) map.addLayer(borderLayer);
+  else if (!on && map.hasLayer(borderLayer)) map.removeLayer(borderLayer);
+  $("#legend").hidden = !on;
 }
 function togglePlay() {
   const btn = $("#play-btn");
