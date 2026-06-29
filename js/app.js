@@ -20,13 +20,13 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
-  terrain: false, reliefLayer: null,
+  terrain: false, mtnLayer: null,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 // 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
 const THEMES = {
-  dark:  { land: "#313b49", coast: "#62788a", ocean: "#0a1826", lakeStroke: "#1c3346", river: "#5e9ad6", borderStroke: "#0a1018", empty: "#46536b", subjSL: "58%, 58%" },
-  light: { land: "#e8e2d6", coast: "#ab9f88", ocean: "#bcd5e8", lakeStroke: "#88aec9", river: "#3f7cc0", borderStroke: "#6f6552", empty: "#cbc4b4", subjSL: "42%, 62%" },
+  dark:  { land: "#313b49", coast: "#62788a", ocean: "#0a1826", lakeStroke: "#1c3346", river: "#5e9ad6", borderStroke: "#0a1018", empty: "#46536b", subjSL: "58%, 58%", mtn: "#b07c3f", mtnEdge: "#5e3f1c" },
+  light: { land: "#e8e2d6", coast: "#ab9f88", ocean: "#bcd5e8", lakeStroke: "#88aec9", river: "#3f7cc0", borderStroke: "#6f6552", empty: "#cbc4b4", subjSL: "42%, 62%", mtn: "#a86f30", mtnEdge: "#6b461c" },
 };
 const theme = () => THEMES[state.theme];
 try { document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "dark"); } catch {} // CSS 깜빡임 방지
@@ -37,7 +37,7 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // GEBCO 음영기복(8192×4096), 정사각
+const MOUNTAINS_URL = "data/basemap/mountains.geojson"; // 산맥(굵은 색칠) — 산/물 한눈 파악
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
 map.createPane("reliefPane").style.zIndex = 250;  // 지형도 이미지(base 위, 국경 아래)
@@ -47,8 +47,9 @@ map.createPane("eventPane").style.zIndex = 450;
 // 성능: 수천 폴리곤을 DOM(SVG) 대신 캔버스에 그린다 → 팬/줌이 매끄러움
 const baseRenderer = L.canvas({ pane: "basePane", padding: 0.4 });
 const borderRenderer = L.canvas({ pane: "borderPane", padding: 0.4 });
+const terrainRenderer = L.canvas({ pane: "reliefPane", padding: 0.4 });
 map.attributionControl.setPrefix(false);
-map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth · 음영기복 GEBCO');
+map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth');
 const baseLayer = L.layerGroup().addTo(map);
 const borderLayer = L.layerGroup().addTo(map);
 const eventLayer = L.layerGroup().addTo(map);
@@ -129,7 +130,7 @@ const builtBorders = new Map(); // filename → 이미 만들어 둔 L.geoJSON (
 function showBorderLayer(gj, filename) {
   borderLayer.clearLayers(); borderLayer.addLayer(gj);
   state.currentBorderGeoLayer = gj; state.currentBorderFilename = filename;
-  $("#legend").hidden = false;
+  $("#legend").hidden = state.terrain;
 }
 // 슬라이더를 빠르게 끌 때 무거운 파일을 연속 파싱하지 않도록 경계 로딩을 디바운스
 let borderTimer = null, pendingBorderYear = null;
@@ -453,22 +454,47 @@ function applyTheme(th, { rerender = true } = {}) {
   state.baseLevel = null; ensureBase(map.getZoom() >= 4 ? "50m" : "110m"); // 지형 색 다시 칠
   builtBorders.clear(); state.currentBorderFilename = null;                 // 국경 색 다시 칠
   scheduleBorders(state.mode === "scene" ? state.scene.borderYear : state.year);
+  if (state.mtnLayer) state.mtnLayer.setStyle(mtnStyle);                    // 산맥 색 테마 반영
+  const tl = $("#terrain-legend"); if (tl) { tl.dataset.built = ""; if (state.terrain) buildTerrainLegend(); }
 }
 function toggleTheme() { applyTheme(state.theme === "light" ? "dark" : "light"); }
 
-// ─── 지형도(음영기복 이미지) 토글
-function toggleTerrain() {
+// ─── 지형 토글: 산맥(굵은 색칠) — 물(파랑)은 상시, 산을 또렷이 → "산이냐 물이냐" 한눈에
+const mtnStyle = () => { const t = theme(); return { color: t.mtnEdge, weight: 0.8, fillColor: t.mtn, fillOpacity: 0.62 }; };
+async function ensureMountains() {
+  if (state.mtnLayer) return state.mtnLayer;
+  const geo = await fetchJSON(MOUNTAINS_URL);
+  state.mtnLayer = L.geoJSON(geo, {
+    pane: "reliefPane", renderer: terrainRenderer, interactive: false, style: mtnStyle,
+    onEachFeature: (f, lyr) => { if (f.properties.name) lyr.bindTooltip(f.properties.name, { permanent: true, direction: "center", className: "border-label" }); },
+  });
+  return state.mtnLayer;
+}
+function updateMtnLabels() {
+  if (!state.terrain || !state.mtnLayer) return;
+  const z = map.getZoom(), maxRank = z >= 4 ? 4 : z >= 3 ? 3 : z >= 2 ? 2 : 1;
+  state.mtnLayer.eachLayer((l) => { if (l.getTooltip && l.getTooltip()) (((l.feature?.properties?.scalerank ?? 9) <= maxRank) ? l.openTooltip() : l.closeTooltip()); });
+}
+map.on("zoomend", updateMtnLabels);
+function buildTerrainLegend() {
+  const el = $("#terrain-legend"); if (!el || el.dataset.built) return;
+  el.innerHTML = '<div class="legend-title">지형</div>' +
+    `<div class="legend-row"><span class="swatch" style="background:${theme().mtn};border:1px solid ${theme().mtnEdge}"></span>산맥</div>` +
+    `<div class="legend-row"><span class="swatch" style="background:${theme().river};border:none;height:3px"></span>강·바다(물)</div>`;
+  el.dataset.built = "1";
+}
+async function toggleTerrain() {
   state.terrain = !state.terrain;
   $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
   if (state.terrain) {
-    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane", className: "relief-img" });
-    state.reliefLayer.addTo(map);
-    if (map.hasLayer(baseLayer)) map.removeLayer(baseLayer);     // 평면 base 숨김 → 지형도 보이게
-    map.getPane("borderPane").style.opacity = "0.5";             // 국경 반투명 → 지형 비침
+    (await ensureMountains()).addTo(map);
+    map.getPane("borderPane").style.opacity = "0.4"; // 국가 색칠 흐리게 → 산·물 도드라지게
+    buildTerrainLegend(); $("#terrain-legend").hidden = false; $("#legend").hidden = true;
+    updateMtnLabels();
   } else {
-    if (state.reliefLayer) map.removeLayer(state.reliefLayer);
-    if (!map.hasLayer(baseLayer)) map.addLayer(baseLayer);
+    if (state.mtnLayer) map.removeLayer(state.mtnLayer);
     map.getPane("borderPane").style.opacity = "1";
+    $("#terrain-legend").hidden = true; $("#legend").hidden = false;
   }
 }
 function togglePlay() {
