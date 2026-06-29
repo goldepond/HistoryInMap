@@ -20,6 +20,7 @@ const state = {
   borderCache: new Map(), baseCache: new Map(),
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null,
+  terrain: false, reliefLayer: null,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 
@@ -27,8 +28,12 @@ const $ = (s) => document.querySelector(s);
 const slider = $("#year-slider");
 const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s || ""));
 
-// ─── 지도
-const map = L.map("map", { worldCopyJump: true, minZoom: 2, maxZoom: 8, center: [25, 15], zoom: 2 });
+// ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
+const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
+const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // NASA Blue Marble 계열, 정사각 1600×800
+const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
+  maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
+map.createPane("reliefPane").style.zIndex = 150;  // 지형 이미지(맨 아래)
 map.createPane("basePane").style.zIndex = 200;
 map.createPane("borderPane").style.zIndex = 300;
 map.createPane("eventPane").style.zIndex = 450;
@@ -36,10 +41,11 @@ map.createPane("eventPane").style.zIndex = 450;
 const baseRenderer = L.canvas({ pane: "basePane", padding: 0.4 });
 const borderRenderer = L.canvas({ pane: "borderPane", padding: 0.4 });
 map.attributionControl.setPrefix(false);
-map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth');
+map.attributionControl.addAttribution('경계 historical-basemaps · 지형 Natural Earth · 위성 NASA Blue Marble');
 const baseLayer = L.layerGroup().addTo(map);
 const borderLayer = L.layerGroup().addTo(map);
 const eventLayer = L.layerGroup().addTo(map);
+map.fitBounds(WORLD_BOUNDS); // 초기 전 세계 보기(정사각 투영엔 center/zoom 대신 범위로)
 
 // ─── 유틸
 const yearText = (y) => (y < 0 ? `기원전 ${Math.abs(y)}년` : `서기 ${y}년`);
@@ -98,7 +104,7 @@ async function ensureBase(level) {
   baseLayer.addLayer(L.geoJSON(lakes, { ...opt, style: { color: "#1c3346", weight: 0.5, fillColor: "#0a1826", fillOpacity: 1 } }));
   baseLayer.addLayer(L.geoJSON(rivers, { ...opt, style: { color: "#3f6486", weight: 0.7 } }));
 }
-map.on("zoomend", () => ensureBase(map.getZoom() >= 5 ? "50m" : "110m"));
+map.on("zoomend", () => ensureBase(map.getZoom() >= 4 ? "50m" : "110m"));
 
 // ─── 국경
 function nearestBorder(year) { return state.years.reduce((b, y) => Math.abs(y.year - year) < Math.abs(b.year - year) ? y : b, state.years[0]); }
@@ -335,10 +341,26 @@ function enterScene(sc) {
 function exitScene() {
   state.mode = "global"; state.scene = null; $("#scene-desc").textContent = ""; $("#scene-select").value = "";
   $("#scene-progress").hidden = true;
-  buildTimeline(); map.setView([25, 15], 2); setYear(state.globalYear);
+  buildTimeline(); map.fitBounds(WORLD_BOUNDS); setYear(state.globalYear);
 }
 
 // ─── UI 바인딩
+// ─── 지형(위성) 레이어 토글 (기본 OFF)
+function toggleTerrain() {
+  state.terrain = !state.terrain;
+  $("#terrain-toggle").setAttribute("aria-pressed", String(state.terrain));
+  if (state.terrain) {
+    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane" });
+    state.reliefLayer.addTo(map);
+    if (map.hasLayer(baseLayer)) map.removeLayer(baseLayer);   // 평면 base 숨김 → 지형 보이게
+    map.getPane("borderPane").style.opacity = "0.5";           // 국경 흐리게 → 지형 비침
+  } else {
+    if (state.reliefLayer) map.removeLayer(state.reliefLayer);
+    if (!map.hasLayer(baseLayer)) map.addLayer(baseLayer);
+    map.getPane("borderPane").style.opacity = "1";
+  }
+}
+
 // ─── 좌표 피커 (좌표 모드 ON일 때만 동작 · 기본 OFF)
 const COORD_DECIMALS = 4; // 약 ~10m
 const r4 = (n) => Math.round(n * 10 ** COORD_DECIMALS) / 10 ** COORD_DECIMALS;
@@ -398,6 +420,7 @@ function bindUI() {
   $("#play-btn").addEventListener("click", togglePlay);
   $("#speed-btn").addEventListener("click", cycleSpeed);
   $("#scene-select").addEventListener("change", (e) => { const sc = state.scenes.find((s) => s.id === e.target.value); sc ? enterScene(sc) : exitScene(); });
+  $("#terrain-toggle").addEventListener("click", toggleTerrain);
   $("#coord-toggle").addEventListener("click", toggleCoord);
   $("#info-toggle").addEventListener("click", () => ($("#info-modal").hidden = false));
   $("#info-close").addEventListener("click", () => ($("#info-modal").hidden = true));
