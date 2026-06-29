@@ -21,6 +21,7 @@ const state = {
   currentBorderGeoLayer: null, currentBorderFilename: null,
   baseLevel: null, playTimer: null, speed: 1, picking: false, coordPin: null, theme: "dark",
   terrain: false, reliefLayer: null, riverOn: true, borderOn: true,
+  reliefHiReady: false, reliefPreloading: false,
 };
 const SPEEDS = [0.5, 1, 2, 4];
 // 지도 색 팔레트(테마별) — 바다·땅·해안선·강·국경
@@ -37,7 +38,8 @@ const md = (s) => (window.marked ? window.marked.parse(s || "") : escapeHtml(s |
 
 // ─── 지도 (정사각 투영 EPSG:4326 — 면적 왜곡 적고 지형 이미지와 정렬됨)
 const WORLD_BOUNDS = [[-56, -168], [80, 180]]; // 전 세계 기본 보기(거주권 위주)
-const RELIEF_URL = "data/basemap/earth-terrain.jpg"; // HYP 컬러 음영기복(10m, 16384×8192), 정사각
+const RELIEF_HI = "data/basemap/earth-terrain.jpg";    // 고해상 음영기복(20480×10240) — 백그라운드 프리로드
+const RELIEF_LO = "data/basemap/earth-terrain-lo.jpg"; // 저해상 썸네일(4096×2048) — 켜는 즉시 표시
 const map = L.map("map", { crs: L.CRS.EPSG4326, minZoom: 0, maxZoom: 7,
   maxBounds: [[-90, -180], [90, 180]], maxBoundsViscosity: 0.6 });
 map.createPane("basePane").style.zIndex = 200;    // 평면 배경(땅·호수)
@@ -472,12 +474,26 @@ function buildTerrainLegend() {
     '<div class="legend-row"><span class="swatch" style="background:#6f99a8;border:none"></span>물</div>';
   el.dataset.built = "1";
 }
-// 지형도(컬러 음영기복 이미지) — 켜면 reliefPane(z250)이 평면 배경을 덮음
+// 고해상 음영기복을 백그라운드로 미리 받아 캐시에 올려둠 → 켤 때 즉시 표시
+function preloadRelief() {
+  if (state.reliefHiReady || state.reliefPreloading) return;
+  if (navigator.connection?.saveData) return; // 데이터 절약 모드면 생략
+  state.reliefPreloading = true;
+  const img = new Image();
+  img.onload = () => { state.reliefHiReady = true; state.reliefPreloading = false;
+    if (state.terrain && state.reliefLayer) state.reliefLayer.setUrl(RELIEF_HI); }; // 켜져 있으면 고해상으로 교체
+  img.onerror = () => { state.reliefPreloading = false; };
+  img.src = RELIEF_HI;
+}
+// 지형도(컬러 음영기복) — 저해상 즉시 표시 후, 고해상 준비되면 자동 교체
 function setTerrainLayer(on) {
   state.terrain = on;
   if (on) {
-    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(RELIEF_URL, [[-90, -180], [90, 180]], { pane: "reliefPane" });
+    const url = state.reliefHiReady ? RELIEF_HI : RELIEF_LO; // 고해상 캐시되어 있으면 바로 고해상
+    if (!state.reliefLayer) state.reliefLayer = L.imageOverlay(url, [[-90, -180], [90, 180]], { pane: "reliefPane" });
+    else state.reliefLayer.setUrl(url);
     state.reliefLayer.addTo(map);
+    preloadRelief(); // 아직 안 받았으면 지금부터 백그라운드로
     buildTerrainLegend(); $("#terrain-legend").hidden = false;
   } else {
     if (state.reliefLayer) map.removeLayer(state.reliefLayer);
@@ -519,6 +535,8 @@ async function init() {
     state.year = state.globalYear = 1490;
     buildTimeline(); setYear(1490);
     showLoading(null);
+    // 지도 뜬 뒤 한가할 때 고해상 지형도 미리 받아둠(켤 때 즉시 표시)
+    (window.requestIdleCallback || ((f) => setTimeout(f, 2500)))(() => preloadRelief());
   } catch (e) { console.error(e); showLoading("⚠ " + e.message); }
 }
 init();
